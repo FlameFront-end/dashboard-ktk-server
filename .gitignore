@@ -1,0 +1,7 @@
+.idea
+node_modules
+dist
+uploads
+
+.env.production
+.env.development
