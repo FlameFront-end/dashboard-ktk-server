@@ -6,6 +6,7 @@ import { StudentEntity } from './entities/student.entity'
 import { UpdateStudentDto } from './dto/update-student.dto'
 import { UserEntity } from '../user/entities/user.entity'
 import * as argon2 from 'argon2'
+import { MailService } from '../mail/mail.service'
 
 @Injectable()
 export class StudentsService {
@@ -14,13 +15,12 @@ export class StudentsService {
 		private readonly studentRepository: Repository<StudentEntity>,
 
 		@InjectRepository(UserEntity)
-		private readonly userRepository: Repository<UserEntity>
+		private readonly userRepository: Repository<UserEntity>,
+
+		private readonly mailService: MailService
 	) {}
 
 	async create(createStudentDto: CreateStudentDto) {
-		const username =
-			createStudentDto.email ||
-			createStudentDto.name.toLowerCase().replace(' ', '_')
 		const password =
 			Math.random().toString(36).substring(2, 10) +
 			Math.random().toString(36).substring(2, 10)
@@ -30,7 +30,7 @@ export class StudentsService {
 		const savedStudent = await this.studentRepository.save(student)
 
 		const user = this.userRepository.create({
-			username,
+			username: createStudentDto.email,
 			password: passwordHash,
 			student: savedStudent,
 			email: savedStudent.email,
@@ -38,9 +38,13 @@ export class StudentsService {
 			birthdate: savedStudent.birthDate
 		})
 
-		await this.userRepository.save(user)
+		await this.mailService.sendMail({
+			to: createStudentDto.email,
+			text: `Логин: ${createStudentDto.email}, пароль: ${password}`,
+			subject: 'Данные для входа в КТК'
+		})
 
-		console.log('Сгенерированный пароль:', password)
+		await this.userRepository.save(user)
 
 		return savedStudent
 	}
@@ -66,10 +70,20 @@ export class StudentsService {
 		return this.studentRepository.save(student)
 	}
 
-	async delete(id: string) {
-		const student = await this.studentRepository.delete(id)
-		if (student.affected === 0) {
-			throw new NotFoundException(`Teacher with ID ${id} not found`)
+	async delete(id: string): Promise<void> {
+		const student = await this.studentRepository.findOne({
+			where: { id },
+			relations: ['user']
+		})
+
+		if (!student) {
+			throw new NotFoundException(`Student with ID ${id} not found`)
 		}
+
+		if (student.user) {
+			await this.userRepository.remove(student.user)
+		}
+
+		await this.studentRepository.delete(id)
 	}
 }

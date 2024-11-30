@@ -17,7 +17,6 @@ export class CreateStudentDto {
 	@IsString()
 	phone?: string
 
-	@IsOptional()
 	@IsString()
-	email?: string
+	email: string
 }

@@ -24,10 +24,13 @@ export class StudentEntity {
 	@Column({ nullable: true })
 	phone?: string
 
-	@Column({ nullable: true })
-	email?: string
+	@Column()
+	email: string
 
-	@OneToOne(() => UserEntity, { cascade: true, eager: true })
+	@OneToOne(() => UserEntity, user => user.student, {
+		onDelete: 'CASCADE',
+		eager: true
+	})
 	@JoinColumn()
 	user: UserEntity
 }

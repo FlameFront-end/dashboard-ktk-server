@@ -14,13 +14,13 @@ export class UserEntity {
 	id: string
 
 	@Column()
-	email: string
-
-	@Column()
 	password: string
 
 	@Column()
 	username: string
+
+	@Column({ nullable: true })
+	email: string
 
 	@Column({ nullable: true })
 	birthdate: string

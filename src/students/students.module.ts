@@ -6,9 +6,11 @@ import { StudentEntity } from './entities/student.entity'
 import { TeacherEntity } from '../teachers/entities/teacher.entity'
 import { ScheduleEntity } from '../groups/entities/schedule.entity'
 import { UserEntity } from '../user/entities/user.entity'
+import { MailModule } from '../mail/mail.module'
 
 @Module({
 	imports: [
+		MailModule,
 		TypeOrmModule.forFeature([
 			StudentEntity,
 			TeacherEntity,
