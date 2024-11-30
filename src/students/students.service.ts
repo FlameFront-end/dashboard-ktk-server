@@ -5,8 +5,9 @@ import { Repository } from 'typeorm'
 import { StudentEntity } from './entities/student.entity'
 import { UpdateStudentDto } from './dto/update-student.dto'
 import { UserEntity } from '../user/entities/user.entity'
-import * as argon2 from 'argon2'
 import { MailService } from '../mail/mail.service'
+import { UserService } from '../user/user.service'
+import { generatePassword } from '../utils/generatePassword'
 
 @Injectable()
 export class StudentsService {
@@ -17,34 +18,33 @@ export class StudentsService {
 		@InjectRepository(UserEntity)
 		private readonly userRepository: Repository<UserEntity>,
 
-		private readonly mailService: MailService
+		private readonly mailService: MailService,
+
+		private readonly userService: UserService
 	) {}
 
 	async create(createStudentDto: CreateStudentDto) {
-		const password =
-			Math.random().toString(36).substring(2, 10) +
-			Math.random().toString(36).substring(2, 10)
-		const passwordHash = await argon2.hash(password)
+		const password = generatePassword()
 
 		const student = this.studentRepository.create(createStudentDto)
 		const savedStudent = await this.studentRepository.save(student)
 
-		const user = this.userRepository.create({
-			username: createStudentDto.email,
-			password: passwordHash,
-			student: savedStudent,
-			email: savedStudent.email,
-			isAdmin: false,
-			birthdate: savedStudent.birthDate
-		})
-
-		await this.mailService.sendMail({
-			to: createStudentDto.email,
-			text: `Логин: ${createStudentDto.email}, пароль: ${password}`,
-			subject: 'Данные для входа в КТК'
-		})
-
-		await this.userRepository.save(user)
+		await this.userService
+			.create({
+				username: createStudentDto.name,
+				password,
+				student: savedStudent,
+				email: createStudentDto.email,
+				birthdate: createStudentDto.birthDate,
+				isStudent: true
+			})
+			.then(() => {
+				this.mailService.sendMail({
+					to: createStudentDto.email,
+					text: `Логин: ${createStudentDto.email}, пароль: ${password}`,
+					subject: 'Данные для входа в КТК'
+				})
+			})
 
 		return savedStudent
 	}

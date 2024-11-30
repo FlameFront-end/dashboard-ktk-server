@@ -7,6 +7,7 @@ import {
 	OneToOne
 } from 'typeorm'
 import { StudentEntity } from '../../students/entities/student.entity'
+import { TeacherEntity } from '../../teachers/entities/teacher.entity'
 
 @Entity('user')
 export class UserEntity {
@@ -28,6 +29,12 @@ export class UserEntity {
 	@Column({ default: false })
 	isAdmin: boolean
 
+	@Column({ default: false })
+	isTeacher: boolean
+
+	@Column({ default: false })
+	isStudent: boolean
+
 	@CreateDateColumn()
 	createdAt: Date
 
@@ -36,4 +43,7 @@ export class UserEntity {
 
 	@OneToOne(() => StudentEntity, student => student.user)
 	student: StudentEntity
+
+	@OneToOne(() => TeacherEntity, teacher => teacher.user)
+	teacher: TeacherEntity
 }

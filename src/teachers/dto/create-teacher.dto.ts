@@ -9,6 +9,10 @@ export class CreateTeacherDto {
 	@IsString()
 	discipline: string
 
+	@IsNotEmpty()
+	@IsString()
+	email: string
+
 	@IsOptional()
 	@IsString()
 	group?: string
