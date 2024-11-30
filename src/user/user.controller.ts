@@ -5,7 +5,6 @@ import {
 	Param,
 	Patch,
 	Post,
-	Query,
 	Request,
 	UnauthorizedException,
 	UseGuards
@@ -16,7 +15,6 @@ import { ApiBody, ApiTags } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import * as argon2 from 'argon2'
 import { ResetPasswordDto } from './dto/reset-password.dto'
-import { UpdateUserDto } from './dto/update-user.dto'
 
 @Controller('user')
 @ApiTags('user')
@@ -52,16 +50,13 @@ export class UserController {
 		}
 	}
 
-	@Get('/all')
-	async getAllUsers(@Query('details') details?: string) {
-		return await this.userService.getAllUsers(details === 'true')
+	@Get()
+	async getAllUsers() {
+		return await this.userService.getAllUsers()
 	}
 
 	@Get(':id')
-	async findOneById(
-		@Param('id') id: string,
-		@Query('details') details?: string
-	) {
-		return this.userService.findOneById(id, details === 'true')
+	async findOneById(@Param('id') id: string) {
+		return this.userService.findOneById(id)
 	}
 }
