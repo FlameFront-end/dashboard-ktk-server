@@ -1,4 +1,4 @@
-import { IsArray, IsString, ValidateNested } from 'class-validator'
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator'
 import { Type } from 'class-transformer'
 
 export class LessonDto {
@@ -6,7 +6,7 @@ export class LessonDto {
 	cabinet: string
 
 	@IsString()
-	teacher: string
+	teacherId: string
 
 	@IsString()
 	title: string
@@ -44,11 +44,12 @@ export class CreateGroupDto {
 	name: string
 
 	@IsString()
-	teacher: string
+	teacherId: string
 
 	@IsArray()
+	@IsOptional()
 	@IsString({ each: true })
-	students: string[]
+	studentIds?: string[]
 
 	@ValidateNested()
 	@Type(() => ScheduleDto)

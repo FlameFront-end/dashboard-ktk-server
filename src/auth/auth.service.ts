@@ -1,21 +1,31 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common'
-import { UserService } from '../user/user.service'
 import { JwtService } from '@nestjs/jwt'
 import * as argon2 from 'argon2'
 import { IUser } from '../types/types'
+import { InjectRepository } from '@nestjs/typeorm'
+import { TeacherEntity } from '../teachers/entities/teacher.entity'
+import { Repository } from 'typeorm'
+import { StudentEntity } from '../students/entities/student.entity'
+import { AdminEntity } from '../admins/entities/admin.entity'
 
 @Injectable()
 export class AuthService {
 	constructor(
-		private readonly userService: UserService,
+		@InjectRepository(TeacherEntity)
+		private readonly teacherRepository: Repository<TeacherEntity>,
+
+		@InjectRepository(StudentEntity)
+		private readonly studentRepository: Repository<StudentEntity>,
+
+		@InjectRepository(AdminEntity)
+		private readonly adminRepository: Repository<AdminEntity>,
+
 		private readonly jwtService: JwtService
 	) {}
 
 	async validateUser(email: string, password: string) {
-		const user = await this.userService.findOneByEmail(email)
+		const user = await this.findOneByEmail(email)
 		const passwordIsMatch = await argon2.verify(user.password, password)
-
-		console.log('passwordIsMatch', passwordIsMatch)
 
 		if (user && passwordIsMatch) {
 			return user
@@ -35,22 +45,13 @@ export class AuthService {
 		}
 	}
 
-	async getUserByEmail(email: string) {
-		return await this.userService.findOneByEmail(email)
-	}
+	async findOneByEmail(email: string) {
+		const [admin, teacher, student] = await Promise.all([
+			this.adminRepository.findOne({ where: { email } }),
+			this.teacherRepository.findOne({ where: { email } }),
+			this.studentRepository.findOne({ where: { email } })
+		])
 
-	async validateToken(token: string) {
-		try {
-			const decoded = this.jwtService.verify(token)
-			const user = await this.userService.findOneById(decoded.id)
-			return {
-				token: token,
-				email: user.email,
-				id: user.id,
-				username: user.username
-			}
-		} catch (error) {
-			throw new UnauthorizedException('Неверный токен!')
-		}
+		return admin || teacher || student
 	}
 }

@@ -4,15 +4,10 @@ import { TeachersService } from './teachers.service'
 import { TeachersController } from './teachers.controller'
 import { TeacherEntity } from './entities/teacher.entity'
 import { MailModule } from '../mail/mail.module'
-import { UserEntity } from '../user/entities/user.entity'
-import { UserModule } from '../user/user.module'
+import { AuthModule } from '../auth/auth.module'
 
 @Module({
-	imports: [
-		MailModule,
-		UserModule,
-		TypeOrmModule.forFeature([TeacherEntity, UserEntity])
-	],
+	imports: [MailModule, AuthModule, TypeOrmModule.forFeature([TeacherEntity])],
 	controllers: [TeachersController],
 	providers: [TeachersService]
 })

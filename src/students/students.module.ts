@@ -3,23 +3,11 @@ import { StudentsService } from './students.service'
 import { StudentsController } from './students.controller'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { StudentEntity } from './entities/student.entity'
-import { TeacherEntity } from '../teachers/entities/teacher.entity'
-import { ScheduleEntity } from '../groups/entities/schedule.entity'
-import { UserEntity } from '../user/entities/user.entity'
 import { MailModule } from '../mail/mail.module'
-import { UserModule } from '../user/user.module'
+import { AuthModule } from '../auth/auth.module'
 
 @Module({
-	imports: [
-		MailModule,
-		UserModule,
-		TypeOrmModule.forFeature([
-			StudentEntity,
-			TeacherEntity,
-			ScheduleEntity,
-			UserEntity
-		])
-	],
+	imports: [MailModule, AuthModule, TypeOrmModule.forFeature([StudentEntity])],
 	controllers: [StudentsController],
 	providers: [StudentsService]
 })

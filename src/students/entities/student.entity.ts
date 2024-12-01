@@ -1,11 +1,13 @@
 import {
 	Column,
+	CreateDateColumn,
 	Entity,
-	JoinColumn,
-	OneToOne,
-	PrimaryGeneratedColumn
+	JoinTable,
+	ManyToOne,
+	PrimaryGeneratedColumn,
+	UpdateDateColumn
 } from 'typeorm'
-import { UserEntity } from '../../user/entities/user.entity'
+import { GroupEntity } from '../../groups/entities/group.entity'
 
 @Entity('students')
 export class StudentEntity {
@@ -13,10 +15,13 @@ export class StudentEntity {
 	id: string
 
 	@Column()
-	name: string
+	email: string
 
 	@Column()
-	group: string
+	password: string
+
+	@Column()
+	name: string
 
 	@Column({ nullable: true })
 	birthDate?: string
@@ -24,13 +29,13 @@ export class StudentEntity {
 	@Column({ nullable: true })
 	phone?: string
 
-	@Column()
-	email: string
+	@CreateDateColumn()
+	createdAt: Date
 
-	@OneToOne(() => UserEntity, user => user.student, {
-		onDelete: 'CASCADE',
-		eager: true
-	})
-	@JoinColumn()
-	user: UserEntity
+	@UpdateDateColumn()
+	updatedAt: Date
+
+	@ManyToOne(() => GroupEntity, group => group.students)
+	@JoinTable()
+	group: GroupEntity
 }

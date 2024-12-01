@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import {
+	BadRequestException,
+	Injectable,
+	NotFoundException
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CreateGroupDto, LessonDto } from './dto/create-group.dto'
@@ -24,22 +28,29 @@ export class GroupsService {
 	) {}
 
 	async create(createGroupDto: CreateGroupDto): Promise<GroupEntity> {
-		const { name, teacher, students, schedule } = createGroupDto
+		const { name, teacherId, studentIds, schedule } = createGroupDto
 
 		const teacherEntity = await this.teacherRepository.findOne({
-			where: {
-				id: teacher
-			}
+			where: { id: teacherId }
 		})
 
 		if (!teacherEntity) {
 			throw new NotFoundException('Teacher not found')
 		}
 
-		const studentEntities = await this.studentRepository.findByIds(students)
+		let studentEntities: StudentEntity[] = []
+		if (studentIds && studentIds.length > 0) {
+			studentEntities = await this.studentRepository.findByIds(studentIds)
+		}
 
-		if (students.length !== studentEntities.length) {
-			throw new NotFoundException('One or more students not found')
+		const existingGroup = await this.groupRepository.findOne({
+			where: { teacher: { id: teacherId } }
+		})
+
+		if (existingGroup) {
+			throw new BadRequestException(
+				'Этот учитель уже назначен на другую группу.'
+			)
 		}
 
 		const group = this.groupRepository.create({
@@ -104,12 +115,12 @@ export class GroupsService {
 		return Promise.all(
 			lessons.map(async lessonDto => {
 				const teacherEntity = await this.teacherRepository.findOne({
-					where: { id: lessonDto.teacher }
+					where: { id: lessonDto.teacherId }
 				})
 
 				if (!teacherEntity) {
 					throw new NotFoundException(
-						`Teacher with ID ${lessonDto.teacher} not found`
+						`Teacher with ID ${lessonDto.teacherId} not found`
 					)
 				}
 

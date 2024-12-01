@@ -7,7 +7,11 @@ export class CreateStudentDto {
 
 	@IsNotEmpty()
 	@IsString()
-	group: string
+	email: string
+
+	@IsNotEmpty()
+	@IsString()
+	groupId: string
 
 	@IsOptional()
 	@IsString()
@@ -16,7 +20,4 @@ export class CreateStudentDto {
 	@IsOptional()
 	@IsString()
 	phone?: string
-
-	@IsString()
-	email: string
 }

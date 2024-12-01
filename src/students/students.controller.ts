@@ -7,7 +7,7 @@ import {
 	Delete,
 	Patch
 } from '@nestjs/common'
-import { ApiTags } from '@nestjs/swagger'
+import { ApiBody, ApiTags } from '@nestjs/swagger'
 import { StudentsService } from './students.service'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { StudentEntity } from './entities/student.entity'
@@ -19,6 +19,7 @@ export class StudentsController {
 	constructor(private readonly studentsService: StudentsService) {}
 
 	@Post()
+	@ApiBody({ type: CreateStudentDto })
 	async create(
 		@Body() createStudentDto: CreateStudentDto
 	): Promise<StudentEntity> {

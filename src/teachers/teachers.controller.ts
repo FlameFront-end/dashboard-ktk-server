@@ -10,7 +10,7 @@ import {
 import { TeachersService } from './teachers.service'
 import { CreateTeacherDto } from './dto/create-teacher.dto'
 import { TeacherEntity } from './entities/teacher.entity'
-import { ApiTags } from '@nestjs/swagger'
+import { ApiBody, ApiTags } from '@nestjs/swagger'
 import { UpdateTeacherDto } from './dto/update-teacher.dto'
 
 @ApiTags('teachers')
@@ -19,6 +19,7 @@ export class TeachersController {
 	constructor(private readonly teachersService: TeachersService) {}
 
 	@Post()
+	@ApiBody({ type: CreateTeacherDto })
 	async createTeacher(
 		@Body() createTeacherDto: CreateTeacherDto
 	): Promise<TeacherEntity> {

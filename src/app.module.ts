@@ -3,11 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { JwtModule } from '@nestjs/jwt'
 import { AuthModule } from './auth/auth.module'
-import { UserEntity } from './user/entities/user.entity'
-import { UserModule } from './user/user.module'
 import { UploadModule } from './upload/upload.module'
 import { MailModule } from './mail/mail.module'
-import { UserDetailsEntity } from './user/entities/user-details.entity'
 import { TeachersModule } from './teachers/teachers.module'
 import { TeacherEntity } from './teachers/entities/teacher.entity'
 import { StudentsModule } from './students/students.module'
@@ -15,10 +12,11 @@ import { StudentEntity } from './students/entities/student.entity'
 import { GroupsModule } from './groups/groups.module'
 import { GroupEntity } from './groups/entities/group.entity'
 import { ScheduleEntity } from './groups/entities/schedule.entity'
+import { AdminsModule } from './admins/admins.module'
+import { AdminEntity } from './admins/entities/admin.entity'
 
 @Module({
 	imports: [
-		UserModule,
 		AuthModule,
 		UploadModule,
 		MailModule,
@@ -33,12 +31,11 @@ import { ScheduleEntity } from './groups/entities/schedule.entity'
 			password: process.env.POSTGRESS_PASSWORD,
 			database: process.env.POSTGRES_DB,
 			entities: [
-				UserEntity,
-				UserDetailsEntity,
 				TeacherEntity,
 				StudentEntity,
 				GroupEntity,
-				ScheduleEntity
+				ScheduleEntity,
+				AdminEntity
 			],
 			synchronize: true,
 			ssl:
@@ -55,16 +52,16 @@ import { ScheduleEntity } from './groups/entities/schedule.entity'
 			inject: [ConfigService]
 		}),
 		TypeOrmModule.forFeature([
-			UserEntity,
-			UserDetailsEntity,
 			TeacherEntity,
 			StudentEntity,
 			GroupEntity,
-			ScheduleEntity
+			ScheduleEntity,
+			AdminEntity
 		]),
 		TeachersModule,
 		StudentsModule,
-		GroupsModule
+		GroupsModule,
+		AdminsModule
 	],
 	controllers: [],
 	providers: []

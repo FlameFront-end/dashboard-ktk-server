@@ -7,13 +7,13 @@ export class CreateTeacherDto {
 
 	@IsNotEmpty()
 	@IsString()
-	discipline: string
+	email: string
 
 	@IsNotEmpty()
 	@IsString()
-	email: string
+	discipline: string
 
 	@IsOptional()
 	@IsString()
-	group?: string
+	groupId?: string
 }
