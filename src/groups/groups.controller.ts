@@ -5,7 +5,8 @@ import {
 	Body,
 	Param,
 	Delete,
-	Patch
+	Patch,
+	ParseUUIDPipe
 } from '@nestjs/common'
 import { GroupsService } from './groups.service'
 import { CreateGroupDto } from './dto/create-group.dto'
@@ -34,7 +35,7 @@ export class GroupsController {
 
 	@Patch(':id')
 	async update(
-		@Param('id') id: string,
+		@Param('id', ParseUUIDPipe) id: string,
 		@Body() updateGroupDto: UpdateGroupDto
 	) {
 		return await this.groupsService.update(id, updateGroupDto)

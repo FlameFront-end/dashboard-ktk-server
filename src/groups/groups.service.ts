@@ -96,14 +96,9 @@ export class GroupsService {
 		const { name, teacher, students, schedule } = updateGroupDto
 
 		if (teacher) {
-			const teacherEntity = await this.teacherRepository.findOne({
+			group.teacher = await this.teacherRepository.findOne({
 				where: { id: teacher }
 			})
-
-			if (!teacherEntity) {
-				throw new NotFoundException('Teacher not found')
-			}
-			group.teacher = teacherEntity
 		}
 
 		if (students) {
@@ -115,14 +110,16 @@ export class GroupsService {
 		}
 
 		if (schedule) {
-			if (!group.schedule) {
-				group.schedule = this.scheduleRepository.create()
-			}
-			group.schedule.monday = await this.processLessons(schedule.monday)
-			group.schedule.tuesday = await this.processLessons(schedule.tuesday)
-			group.schedule.wednesday = await this.processLessons(schedule.wednesday)
-			group.schedule.thursday = await this.processLessons(schedule.thursday)
-			group.schedule.friday = await this.processLessons(schedule.friday)
+			group.schedule.monday = await this.processLessons(schedule.monday || [])
+			group.schedule.tuesday = await this.processLessons(schedule.tuesday || [])
+			group.schedule.wednesday = await this.processLessons(
+				schedule.wednesday || []
+			)
+			group.schedule.thursday = await this.processLessons(
+				schedule.thursday || []
+			)
+			group.schedule.friday = await this.processLessons(schedule.friday || [])
+
 			await this.scheduleRepository.save(group.schedule)
 		}
 
@@ -174,15 +171,15 @@ export class GroupsService {
 		await this.groupRepository.delete(id)
 	}
 
-	private async processLessons(lessons: LessonDto[]): Promise<Lesson[]> {
+	private async processLessons(lessons: any[]): Promise<Lesson[]> {
 		return Promise.all(
 			lessons.map(async lessonDto => {
 				const teacherEntity = await this.teacherRepository.findOne({
-					where: { id: lessonDto.teacherId }
+					where: { id: lessonDto.teacher.id }
 				})
 
 				const disciplineEntity = await this.disciplineRepository.findOne({
-					where: { id: lessonDto.discipline }
+					where: { id: lessonDto.discipline.id }
 				})
 
 				if (!teacherEntity) {
