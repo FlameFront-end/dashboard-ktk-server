@@ -14,6 +14,8 @@ import { GroupEntity } from './groups/entities/group.entity'
 import { ScheduleEntity } from './groups/entities/schedule.entity'
 import { AdminsModule } from './admins/admins.module'
 import { AdminEntity } from './admins/entities/admin.entity'
+import { DisciplinesModule } from './disciplines/disciplines.module'
+import { DisciplineEntity } from './disciplines/entities/discipline.entity'
 
 @Module({
 	imports: [
@@ -35,7 +37,8 @@ import { AdminEntity } from './admins/entities/admin.entity'
 				StudentEntity,
 				GroupEntity,
 				ScheduleEntity,
-				AdminEntity
+				AdminEntity,
+				DisciplineEntity
 			],
 			synchronize: true,
 			ssl:
@@ -56,12 +59,14 @@ import { AdminEntity } from './admins/entities/admin.entity'
 			StudentEntity,
 			GroupEntity,
 			ScheduleEntity,
-			AdminEntity
+			AdminEntity,
+			DisciplineEntity
 		]),
 		TeachersModule,
 		StudentsModule,
 		GroupsModule,
-		AdminsModule
+		AdminsModule,
+		DisciplinesModule
 	],
 	controllers: [],
 	providers: []

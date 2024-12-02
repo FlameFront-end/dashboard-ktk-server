@@ -9,7 +9,7 @@ export class LessonDto {
 	teacherId: string
 
 	@IsString()
-	title: string
+	discipline: string
 }
 
 export class ScheduleDto {
@@ -44,12 +44,12 @@ export class CreateGroupDto {
 	name: string
 
 	@IsString()
-	teacherId: string
+	teacher: string
 
 	@IsArray()
 	@IsOptional()
 	@IsString({ each: true })
-	studentIds?: string[]
+	students?: string[]
 
 	@ValidateNested()
 	@Type(() => ScheduleDto)

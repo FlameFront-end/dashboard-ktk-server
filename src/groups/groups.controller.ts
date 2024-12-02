@@ -1,7 +1,16 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common'
+import {
+	Controller,
+	Get,
+	Post,
+	Body,
+	Param,
+	Delete,
+	Patch
+} from '@nestjs/common'
 import { GroupsService } from './groups.service'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { ApiTags } from '@nestjs/swagger'
+import { UpdateGroupDto } from './dto/update-group.dto'
 
 @ApiTags('groups')
 @Controller('groups')
@@ -21,6 +30,14 @@ export class GroupsController {
 	@Get(':id')
 	async findOne(@Param('id') id: string) {
 		return await this.groupsService.findOne(id)
+	}
+
+	@Patch(':id')
+	async update(
+		@Param('id') id: string,
+		@Body() updateGroupDto: UpdateGroupDto
+	) {
+		return await this.groupsService.update(id, updateGroupDto)
 	}
 
 	@Delete(':id')

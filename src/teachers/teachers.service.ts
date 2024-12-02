@@ -11,13 +11,21 @@ import { UpdateTeacherDto } from './dto/update-teacher.dto'
 import { MailService } from '../mail/mail.service'
 import { generatePassword } from '../utils/generatePassword'
 import { AuthService } from '../auth/auth.service'
+import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
 import * as argon2 from 'argon2'
+import { GroupEntity } from '../groups/entities/group.entity'
 
 @Injectable()
 export class TeachersService {
 	constructor(
 		@InjectRepository(TeacherEntity)
 		private readonly teacherRepository: Repository<TeacherEntity>,
+
+		@InjectRepository(DisciplineEntity)
+		private readonly disciplineRepository: Repository<DisciplineEntity>,
+
+		@InjectRepository(GroupEntity)
+		private readonly groupRepository: Repository<GroupEntity>,
 
 		private readonly mailService: MailService,
 
@@ -36,9 +44,26 @@ export class TeachersService {
 		const password = generatePassword()
 		const hashedPassword = await argon2.hash(password)
 
+		const discipline = await this.disciplineRepository.findOne({
+			where: {
+				id: createTeacherDto.discipline
+			}
+		})
+
+		const group = await this.groupRepository.findOne({
+			where: {
+				id: createTeacherDto.groupId
+			}
+		})
+
+		console.log('discipline', discipline)
+
 		const teacher = this.teacherRepository.create({
-			...createTeacherDto,
-			password: hashedPassword
+			name: createTeacherDto.name,
+			email: createTeacherDto.email,
+			password: hashedPassword,
+			group,
+			discipline
 		})
 
 		await this.mailService.sendMail({
@@ -51,13 +76,13 @@ export class TeachersService {
 	}
 
 	async getAllTeachers(): Promise<TeacherEntity[]> {
-		return this.teacherRepository.find({ relations: ['group'] })
+		return this.teacherRepository.find({ relations: ['group', 'discipline'] })
 	}
 
 	async getTeacherById(id: string): Promise<TeacherEntity> {
 		const teacher = await this.teacherRepository.findOne({
 			where: { id },
-			relations: ['group']
+			relations: ['group', 'discipline']
 		})
 		if (!teacher) {
 			throw new NotFoundException(`Teacher with ID ${id} not found`)

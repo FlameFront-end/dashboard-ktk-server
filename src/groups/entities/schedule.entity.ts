@@ -7,11 +7,12 @@ import {
 } from 'typeorm'
 import { GroupEntity } from './group.entity'
 import { TeacherEntity } from '../../teachers/entities/teacher.entity'
+import { DisciplineEntity } from '../../disciplines/entities/discipline.entity'
 
 export interface Lesson {
 	cabinet: string
 	teacher: TeacherEntity
-	title: string
+	discipline: DisciplineEntity
 }
 
 @Entity('schedules')

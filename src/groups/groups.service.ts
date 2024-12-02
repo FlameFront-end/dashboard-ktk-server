@@ -10,6 +10,8 @@ import { GroupEntity } from './entities/group.entity'
 import { Lesson, ScheduleEntity } from './entities/schedule.entity'
 import { TeacherEntity } from '../teachers/entities/teacher.entity'
 import { StudentEntity } from '../students/entities/student.entity'
+import { UpdateGroupDto } from './dto/update-group.dto'
+import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
 
 @Injectable()
 export class GroupsService {
@@ -23,15 +25,18 @@ export class GroupsService {
 		@InjectRepository(TeacherEntity)
 		private readonly teacherRepository: Repository<TeacherEntity>,
 
+		@InjectRepository(DisciplineEntity)
+		private readonly disciplineRepository: Repository<DisciplineEntity>,
+
 		@InjectRepository(StudentEntity)
 		private readonly studentRepository: Repository<StudentEntity>
 	) {}
 
 	async create(createGroupDto: CreateGroupDto): Promise<GroupEntity> {
-		const { name, teacherId, studentIds, schedule } = createGroupDto
+		const { name, teacher, students, schedule } = createGroupDto
 
 		const teacherEntity = await this.teacherRepository.findOne({
-			where: { id: teacherId }
+			where: { id: teacher }
 		})
 
 		if (!teacherEntity) {
@@ -39,12 +44,12 @@ export class GroupsService {
 		}
 
 		let studentEntities: StudentEntity[] = []
-		if (studentIds && studentIds.length > 0) {
-			studentEntities = await this.studentRepository.findByIds(studentIds)
+		if (students && students.length > 0) {
+			studentEntities = await this.studentRepository.findByIds(students)
 		}
 
 		const existingGroup = await this.groupRepository.findOne({
-			where: { teacher: { id: teacherId } }
+			where: { teacher: { id: teacher } }
 		})
 
 		if (existingGroup) {
@@ -75,6 +80,55 @@ export class GroupsService {
 		return await this.groupRepository.save(savedGroup)
 	}
 
+	async update(
+		id: string,
+		updateGroupDto: UpdateGroupDto
+	): Promise<GroupEntity> {
+		const group = await this.groupRepository.findOne({
+			where: { id },
+			relations: ['schedule', 'teacher', 'students']
+		})
+
+		if (!group) {
+			throw new NotFoundException('Group not found')
+		}
+
+		const { name, teacher, students, schedule } = updateGroupDto
+
+		if (teacher) {
+			const teacherEntity = await this.teacherRepository.findOne({
+				where: { id: teacher }
+			})
+
+			if (!teacherEntity) {
+				throw new NotFoundException('Teacher not found')
+			}
+			group.teacher = teacherEntity
+		}
+
+		if (students) {
+			group.students = await this.studentRepository.findByIds(students)
+		}
+
+		if (name) {
+			group.name = name
+		}
+
+		if (schedule) {
+			if (!group.schedule) {
+				group.schedule = this.scheduleRepository.create()
+			}
+			group.schedule.monday = await this.processLessons(schedule.monday)
+			group.schedule.tuesday = await this.processLessons(schedule.tuesday)
+			group.schedule.wednesday = await this.processLessons(schedule.wednesday)
+			group.schedule.thursday = await this.processLessons(schedule.thursday)
+			group.schedule.friday = await this.processLessons(schedule.friday)
+			await this.scheduleRepository.save(group.schedule)
+		}
+
+		return await this.groupRepository.save(group)
+	}
+
 	async findAll(): Promise<GroupEntity[]> {
 		return await this.groupRepository.find({
 			relations: ['schedule', 'teacher', 'students']
@@ -97,11 +151,20 @@ export class GroupsService {
 	async remove(id: string): Promise<void> {
 		const group = await this.groupRepository.findOne({
 			where: { id },
-			relations: ['schedule']
+			relations: ['schedule', 'students', 'teacher']
 		})
 
 		if (!group) {
 			throw new NotFoundException('Group not found')
+		}
+
+		if (group.students && group.students.length > 0) {
+			await this.studentRepository
+				.createQueryBuilder()
+				.update(StudentEntity)
+				.set({ group: null })
+				.where('groupId = :groupId', { groupId: group.id })
+				.execute()
 		}
 
 		if (group.schedule) {
@@ -118,14 +181,25 @@ export class GroupsService {
 					where: { id: lessonDto.teacherId }
 				})
 
+				const disciplineEntity = await this.disciplineRepository.findOne({
+					where: { id: lessonDto.discipline }
+				})
+
 				if (!teacherEntity) {
 					throw new NotFoundException(
 						`Teacher with ID ${lessonDto.teacherId} not found`
 					)
 				}
 
+				if (!disciplineEntity) {
+					throw new NotFoundException(
+						`Discipline with ID ${lessonDto.discipline} not found`
+					)
+				}
+
 				return {
 					...lessonDto,
+					discipline: disciplineEntity,
 					teacher: teacherEntity
 				} as Lesson
 			})

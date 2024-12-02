@@ -4,9 +4,11 @@ import {
 	Column,
 	CreateDateColumn,
 	UpdateDateColumn,
-	OneToOne
+	OneToOne,
+	JoinColumn
 } from 'typeorm'
 import { GroupEntity } from '../../groups/entities/group.entity'
+import { DisciplineEntity } from '../../disciplines/entities/discipline.entity'
 
 @Entity('teachers')
 export class TeacherEntity {
@@ -22,9 +24,6 @@ export class TeacherEntity {
 	@Column()
 	name: string
 
-	@Column()
-	discipline: string
-
 	@CreateDateColumn()
 	createdAt: Date
 
@@ -32,5 +31,10 @@ export class TeacherEntity {
 	updatedAt: Date
 
 	@OneToOne(() => GroupEntity, group => group.teacher)
+	@JoinColumn()
 	group: GroupEntity
+
+	@OneToOne(() => DisciplineEntity, discipline => discipline.teacher)
+	@JoinColumn()
+	discipline: DisciplineEntity
 }

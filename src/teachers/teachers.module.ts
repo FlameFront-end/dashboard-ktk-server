@@ -5,9 +5,15 @@ import { TeachersController } from './teachers.controller'
 import { TeacherEntity } from './entities/teacher.entity'
 import { MailModule } from '../mail/mail.module'
 import { AuthModule } from '../auth/auth.module'
+import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
+import { GroupEntity } from '../groups/entities/group.entity'
 
 @Module({
-	imports: [MailModule, AuthModule, TypeOrmModule.forFeature([TeacherEntity])],
+	imports: [
+		MailModule,
+		AuthModule,
+		TypeOrmModule.forFeature([TeacherEntity, DisciplineEntity, GroupEntity])
+	],
 	controllers: [TeachersController],
 	providers: [TeachersService]
 })
