@@ -6,12 +6,14 @@ import {
 	Param,
 	Delete,
 	Patch,
-	ParseUUIDPipe
+	ParseUUIDPipe,
+	Query
 } from '@nestjs/common'
-import { GroupsService } from './groups.service'
+import { DisciplineGrades, GroupsService } from './groups.service'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { ApiTags } from '@nestjs/swagger'
 import { UpdateGroupDto } from './dto/update-group.dto'
+import { SaveGradesDto } from './dto/save-grades.dto'
 
 @ApiTags('groups')
 @Controller('groups')
@@ -49,5 +51,19 @@ export class GroupsController {
 	@Delete(':id')
 	async remove(@Param('id') id: string) {
 		await this.groupsService.remove(id)
+	}
+
+	@Post('/grades') // Correct POST endpoint
+	async saveGrades(@Body() saveGradesDto: SaveGradesDto) {
+		console.log('saveGradesDto', saveGradesDto)
+		return this.groupsService.saveGrades(saveGradesDto)
+	}
+
+	@Get(':groupId/grades')
+	async getGrades(
+		@Param('groupId') groupId: string,
+		@Query('weekStart') weekStart: string
+	): Promise<DisciplineGrades> {
+		return this.groupsService.getGrades(groupId, weekStart)
 	}
 }

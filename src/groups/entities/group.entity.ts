@@ -12,6 +12,7 @@ import {
 import { ScheduleEntity } from './schedule.entity'
 import { TeacherEntity } from '../../teachers/entities/teacher.entity'
 import { StudentEntity } from '../../students/entities/student.entity'
+import { GradeEntity } from './grade.entity'
 
 @Entity('groups')
 export class GroupEntity {
@@ -46,4 +47,7 @@ export class GroupEntity {
 	})
 	@JoinTable()
 	students: StudentEntity[]
+
+	@OneToMany(() => GradeEntity, grade => grade.group)
+	grades: GradeEntity[]
 }

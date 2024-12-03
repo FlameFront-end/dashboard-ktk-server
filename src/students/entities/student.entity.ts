@@ -4,10 +4,12 @@ import {
 	Entity,
 	JoinColumn,
 	ManyToOne,
+	OneToMany,
 	PrimaryGeneratedColumn,
 	UpdateDateColumn
 } from 'typeorm'
 import { GroupEntity } from '../../groups/entities/group.entity'
+import { GradeEntity } from '../../groups/entities/grade.entity'
 
 @Entity('students')
 export class StudentEntity {
@@ -37,6 +39,9 @@ export class StudentEntity {
 
 	@UpdateDateColumn()
 	updatedAt: Date
+
+	@OneToMany(() => GradeEntity, grade => grade.student)
+	grades: GradeEntity[]
 
 	@ManyToOne(() => GroupEntity, group => group.students, {
 		onDelete: 'SET NULL'

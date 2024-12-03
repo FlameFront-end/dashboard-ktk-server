@@ -16,6 +16,7 @@ import { AdminsModule } from './admins/admins.module'
 import { AdminEntity } from './admins/entities/admin.entity'
 import { DisciplinesModule } from './disciplines/disciplines.module'
 import { DisciplineEntity } from './disciplines/entities/discipline.entity'
+import { GradeEntity } from './groups/entities/grade.entity'
 
 @Module({
 	imports: [
@@ -38,7 +39,8 @@ import { DisciplineEntity } from './disciplines/entities/discipline.entity'
 				GroupEntity,
 				ScheduleEntity,
 				AdminEntity,
-				DisciplineEntity
+				DisciplineEntity,
+				GradeEntity
 			],
 			synchronize: true,
 			ssl:
@@ -60,7 +62,8 @@ import { DisciplineEntity } from './disciplines/entities/discipline.entity'
 			GroupEntity,
 			ScheduleEntity,
 			AdminEntity,
-			DisciplineEntity
+			DisciplineEntity,
+			GradeEntity
 		]),
 		TeachersModule,
 		StudentsModule,

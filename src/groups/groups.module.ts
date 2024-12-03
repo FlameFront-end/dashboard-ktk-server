@@ -7,6 +7,7 @@ import { ScheduleEntity } from './entities/schedule.entity'
 import { TeacherEntity } from '../teachers/entities/teacher.entity'
 import { StudentEntity } from '../students/entities/student.entity'
 import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
+import { GradeEntity } from './entities/grade.entity'
 
 @Module({
 	imports: [
@@ -15,7 +16,8 @@ import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
 			ScheduleEntity,
 			TeacherEntity,
 			StudentEntity,
-			DisciplineEntity
+			DisciplineEntity,
+			GradeEntity
 		])
 	],
 	controllers: [GroupsController],
