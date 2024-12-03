@@ -35,12 +35,14 @@ export class AuthService {
 	}
 
 	async login(user: IUser) {
-		const { id, email, username } = user
+		const { id, email, name, role, group } = user
 
 		return {
 			id,
-			username,
+			name,
+			role,
 			email,
+			groupId: group?.id ?? null,
 			token: this.jwtService.sign({ id: user.id, email: user.email })
 		}
 	}
@@ -48,8 +50,11 @@ export class AuthService {
 	async findOneByEmail(email: string) {
 		const [admin, teacher, student] = await Promise.all([
 			this.adminRepository.findOne({ where: { email } }),
-			this.teacherRepository.findOne({ where: { email } }),
-			this.studentRepository.findOne({ where: { email } })
+			this.teacherRepository.findOne({
+				where: { email },
+				relations: ['group']
+			}),
+			this.studentRepository.findOne({ where: { email }, relations: ['group'] })
 		])
 
 		return admin || teacher || student

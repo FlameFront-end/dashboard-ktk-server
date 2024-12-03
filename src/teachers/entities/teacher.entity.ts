@@ -24,6 +24,9 @@ export class TeacherEntity {
 	@Column()
 	name: string
 
+	@Column({ default: 'teacher' })
+	role: string
+
 	@CreateDateColumn()
 	createdAt: Date
 

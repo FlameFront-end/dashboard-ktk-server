@@ -20,6 +20,9 @@ export class AdminEntity {
 	@Column()
 	name: string
 
+	@Column({ default: 'admin' })
+	role: string
+
 	@CreateDateColumn()
 	createdAt: Date
 

@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { CreateGroupDto, LessonDto } from './dto/create-group.dto'
+import { CreateGroupDto } from './dto/create-group.dto'
 import { GroupEntity } from './entities/group.entity'
 import { Lesson, ScheduleEntity } from './entities/schedule.entity'
 import { TeacherEntity } from '../teachers/entities/teacher.entity'

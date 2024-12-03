@@ -3,7 +3,6 @@ import {
 	CreateDateColumn,
 	Entity,
 	JoinColumn,
-	JoinTable,
 	ManyToOne,
 	PrimaryGeneratedColumn,
 	UpdateDateColumn
@@ -23,6 +22,9 @@ export class StudentEntity {
 
 	@Column()
 	name: string
+
+	@Column({ default: 'student' })
+	role: string
 
 	@Column({ nullable: true })
 	birthDate?: string
