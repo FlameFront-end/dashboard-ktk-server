@@ -35,7 +35,9 @@ export class ScheduleEntity {
 	@Column('jsonb')
 	friday: Lesson[]
 
-	@OneToOne(() => GroupEntity, group => group.schedule)
+	@OneToOne(() => GroupEntity, group => group.schedule, {
+		onDelete: 'CASCADE'
+	})
 	@JoinColumn()
 	group: GroupEntity
 }

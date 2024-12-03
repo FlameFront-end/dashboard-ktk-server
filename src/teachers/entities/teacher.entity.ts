@@ -30,7 +30,9 @@ export class TeacherEntity {
 	@UpdateDateColumn()
 	updatedAt: Date
 
-	@OneToOne(() => GroupEntity, group => group.teacher)
+	@OneToOne(() => GroupEntity, group => group.teacher, {
+		onDelete: 'SET NULL'
+	})
 	@JoinColumn()
 	group: GroupEntity
 

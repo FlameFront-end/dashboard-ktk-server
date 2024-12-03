@@ -28,6 +28,11 @@ export class GroupsController {
 		return await this.groupsService.findAll()
 	}
 
+	@Get('without-teacher')
+	async findGroupsWithoutTeacher() {
+		return await this.groupsService.findWithoutTeacher()
+	}
+
 	@Get(':id')
 	async findOne(@Param('id') id: string) {
 		return await this.groupsService.findOne(id)

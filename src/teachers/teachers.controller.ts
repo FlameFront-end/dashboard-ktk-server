@@ -20,20 +20,25 @@ export class TeachersController {
 
 	@Post()
 	@ApiBody({ type: CreateTeacherDto })
-	async createTeacher(
+	async create(
 		@Body() createTeacherDto: CreateTeacherDto
 	): Promise<TeacherEntity> {
-		return this.teachersService.createTeacher(createTeacherDto)
+		return this.teachersService.create(createTeacherDto)
 	}
 
 	@Get()
-	async getAllTeachers(): Promise<TeacherEntity[]> {
-		return this.teachersService.getAllTeachers()
+	async findAll(): Promise<TeacherEntity[]> {
+		return this.teachersService.findAll()
+	}
+
+	@Get('without-group')
+	async findTeachersWithoutGroup() {
+		return this.teachersService.findWithoutGroup()
 	}
 
 	@Get(':id')
-	async getTeacherById(@Param('id') id: string): Promise<TeacherEntity> {
-		return this.teachersService.getTeacherById(id)
+	async find(@Param('id') id: string): Promise<TeacherEntity> {
+		return this.teachersService.find(id)
 	}
 
 	@Patch(':id')
@@ -48,7 +53,7 @@ export class TeachersController {
 	async deleteTeacherById(
 		@Param('id') id: string
 	): Promise<{ message: string }> {
-		await this.teachersService.deleteTeacherById(id)
+		await this.teachersService.delete(id)
 		return { message: `Teacher with ID ${id} deleted successfully` }
 	}
 }

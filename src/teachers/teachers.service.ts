@@ -14,6 +14,7 @@ import { AuthService } from '../auth/auth.service'
 import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
 import * as argon2 from 'argon2'
 import { GroupEntity } from '../groups/entities/group.entity'
+import { Lesson, ScheduleEntity } from '../groups/entities/schedule.entity'
 
 @Injectable()
 export class TeachersService {
@@ -27,12 +28,15 @@ export class TeachersService {
 		@InjectRepository(GroupEntity)
 		private readonly groupRepository: Repository<GroupEntity>,
 
+		@InjectRepository(ScheduleEntity)
+		private readonly scheduleRepository: Repository<ScheduleEntity>,
+
 		private readonly mailService: MailService,
 
 		private readonly authService: AuthService
 	) {}
 
-	async createTeacher(createTeacherDto: CreateTeacherDto) {
+	async create(createTeacherDto: CreateTeacherDto) {
 		const existUser = await this.authService.findOneByEmail(
 			createTeacherDto.email
 		)
@@ -56,8 +60,6 @@ export class TeachersService {
 			}
 		})
 
-		console.log('discipline', discipline)
-
 		const teacher = this.teacherRepository.create({
 			name: createTeacherDto.name,
 			email: createTeacherDto.email,
@@ -75,11 +77,18 @@ export class TeachersService {
 		return await this.teacherRepository.save(teacher)
 	}
 
-	async getAllTeachers(): Promise<TeacherEntity[]> {
+	async findAll(): Promise<TeacherEntity[]> {
 		return this.teacherRepository.find({ relations: ['group', 'discipline'] })
 	}
 
-	async getTeacherById(id: string): Promise<TeacherEntity> {
+	async findWithoutGroup(): Promise<TeacherEntity[]> {
+		return this.teacherRepository.find({
+			where: { group: null },
+			relations: ['discipline']
+		})
+	}
+
+	async find(id: string): Promise<TeacherEntity> {
 		const teacher = await this.teacherRepository.findOne({
 			where: { id },
 			relations: ['group', 'discipline']
@@ -91,15 +100,74 @@ export class TeachersService {
 	}
 
 	async update(id: string, updateTeacherDto: UpdateTeacherDto) {
-		const teacher = await this.teacherRepository.findOne({ where: { id } })
+		const teacher = await this.teacherRepository.findOne({
+			where: { id },
+			relations: ['group']
+		})
 		if (!teacher) {
-			throw new NotFoundException(`Student with ID ${id} not found`)
+			throw new NotFoundException(`Teacher with ID ${id} not found`)
 		}
+
+		const newGroup = updateTeacherDto.groupId
+			? await this.groupRepository.findOne({
+					where: { id: updateTeacherDto.groupId }
+				})
+			: null
+
 		Object.assign(teacher, updateTeacherDto)
-		return this.teacherRepository.save(teacher)
+		if (newGroup) {
+			teacher.group = newGroup
+		}
+
+		const savedTeacher = await this.teacherRepository.save(teacher)
+
+		if (savedTeacher.group) {
+			const schedule = await this.scheduleRepository.findOne({
+				where: { group: { id: savedTeacher.group.id } },
+				relations: ['group']
+			})
+
+			if (schedule) {
+				schedule.monday = this.updateScheduleLessons(
+					schedule.monday,
+					savedTeacher
+				)
+				schedule.tuesday = this.updateScheduleLessons(
+					schedule.tuesday,
+					savedTeacher
+				)
+				schedule.wednesday = this.updateScheduleLessons(
+					schedule.wednesday,
+					savedTeacher
+				)
+				schedule.thursday = this.updateScheduleLessons(
+					schedule.thursday,
+					savedTeacher
+				)
+				schedule.friday = this.updateScheduleLessons(
+					schedule.friday,
+					savedTeacher
+				)
+				await this.scheduleRepository.save(schedule)
+			}
+		}
+
+		return savedTeacher
 	}
 
-	async deleteTeacherById(id: string): Promise<DeleteResult> {
+	async delete(id: string): Promise<DeleteResult> {
 		return await this.teacherRepository.delete(id)
+	}
+
+	private updateScheduleLessons(
+		lessons: Lesson[],
+		teacher: TeacherEntity
+	): Lesson[] {
+		return lessons.map(lesson => {
+			if (lesson.teacher.id === teacher.id) {
+				return { ...lesson, teacher: teacher }
+			}
+			return lesson
+		})
 	}
 }

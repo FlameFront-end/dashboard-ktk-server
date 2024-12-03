@@ -37,7 +37,7 @@ export class GroupEntity {
 		cascade: true,
 		onDelete: 'SET NULL'
 	})
-	@JoinColumn()
+	@JoinTable()
 	teacher: TeacherEntity
 
 	@OneToMany(() => StudentEntity, students => students.group, {

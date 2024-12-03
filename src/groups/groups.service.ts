@@ -145,29 +145,24 @@ export class GroupsService {
 		return group
 	}
 
+	async findWithoutTeacher(): Promise<GroupEntity[]> {
+		return this.groupRepository.find({
+			where: {
+				teacher: null
+			},
+			relations: ['schedule', 'students']
+		})
+	}
+
 	async remove(id: string): Promise<void> {
 		const group = await this.groupRepository.findOne({
 			where: { id },
-			relations: ['schedule', 'students', 'teacher']
+			relations: ['teacher']
 		})
-
-		if (!group) {
-			throw new NotFoundException('Group not found')
+		if (group && group.teacher) {
+			group.teacher.group = null
+			await this.teacherRepository.save(group.teacher)
 		}
-
-		if (group.students && group.students.length > 0) {
-			await this.studentRepository
-				.createQueryBuilder()
-				.update(StudentEntity)
-				.set({ group: null })
-				.where('groupId = :groupId', { groupId: group.id })
-				.execute()
-		}
-
-		if (group.schedule) {
-			await this.scheduleRepository.delete(group.schedule.id)
-		}
-
 		await this.groupRepository.delete(id)
 	}
 

@@ -54,6 +54,12 @@ export class StudentsService {
 		return this.studentRepository.find({ relations: ['group'] })
 	}
 
+	async findWithoutGroup(): Promise<StudentEntity[]> {
+		return this.studentRepository.find({
+			where: { group: null }
+		})
+	}
+
 	async findOne(id: string) {
 		const student = await this.studentRepository.findOne({
 			where: { id },

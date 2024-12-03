@@ -31,6 +31,11 @@ export class StudentsController {
 		return this.studentsService.findAll()
 	}
 
+	@Get('without-group')
+	async getStudentsWithoutGroup(): Promise<StudentEntity[]> {
+		return this.studentsService.findWithoutGroup()
+	}
+
 	@Get(':id')
 	async getById(@Param('id') id: string): Promise<StudentEntity> {
 		return this.studentsService.findOne(id)

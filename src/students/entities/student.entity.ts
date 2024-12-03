@@ -2,6 +2,7 @@ import {
 	Column,
 	CreateDateColumn,
 	Entity,
+	JoinColumn,
 	JoinTable,
 	ManyToOne,
 	PrimaryGeneratedColumn,
@@ -35,7 +36,9 @@ export class StudentEntity {
 	@UpdateDateColumn()
 	updatedAt: Date
 
-	@ManyToOne(() => GroupEntity, group => group.students)
-	@JoinTable()
+	@ManyToOne(() => GroupEntity, group => group.students, {
+		onDelete: 'SET NULL'
+	})
+	@JoinColumn()
 	group: GroupEntity
 }
