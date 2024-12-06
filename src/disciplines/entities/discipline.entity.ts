@@ -2,6 +2,7 @@ import {
 	Column,
 	CreateDateColumn,
 	Entity,
+	JoinColumn,
 	OneToMany,
 	OneToOne,
 	PrimaryGeneratedColumn,
@@ -9,6 +10,7 @@ import {
 } from 'typeorm'
 import { TeacherEntity } from '../../teachers/entities/teacher.entity'
 import { GradeEntity } from '../../groups/entities/grade.entity'
+import { LessonEntity } from '../../lessons/entities/lesson.entity'
 
 @Entity('disciplines')
 export class DisciplineEntity {
@@ -29,4 +31,8 @@ export class DisciplineEntity {
 
 	@OneToOne(() => TeacherEntity, teacher => teacher.discipline)
 	teacher: DisciplineEntity
+
+	@OneToMany(() => GradeEntity, grade => grade.discipline)
+	@JoinColumn()
+	lessons: LessonEntity[]
 }

@@ -53,9 +53,8 @@ export class GroupsController {
 		await this.groupsService.remove(id)
 	}
 
-	@Post('/grades') // Correct POST endpoint
+	@Post('/grades')
 	async saveGrades(@Body() saveGradesDto: SaveGradesDto) {
-		console.log('saveGradesDto', saveGradesDto)
 		return this.groupsService.saveGrades(saveGradesDto)
 	}
 
