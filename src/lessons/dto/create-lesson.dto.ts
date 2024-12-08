@@ -13,6 +13,10 @@ export class CreateLessonDto {
 
 	@IsString()
 	@IsNotEmpty()
+	groupId: string
+
+	@IsString()
+	@IsNotEmpty()
 	disciplineId: string
 
 	@IsString()

@@ -10,6 +10,7 @@ import {
 import { LessonsService } from './lessons.service'
 import { CreateLessonDto } from './dto/create-lesson.dto'
 import { UpdateLessonDto } from './dto/update-lesson.dto'
+import { LessonEntity } from './entities/lesson.entity'
 
 @Controller('lessons')
 export class LessonsController {
@@ -23,6 +24,14 @@ export class LessonsController {
 	@Get()
 	findAll() {
 		return this.lessonsService.findAll()
+	}
+
+	@Get(':groupId/:disciplineId')
+	async findLessonsByGroupAndDiscipline(
+		@Param('groupId') groupId: string,
+		@Param('disciplineId') disciplineId: string
+	): Promise<LessonEntity[]> {
+		return this.lessonsService.findByGroupAndDiscipline(groupId, disciplineId)
 	}
 
 	@Get(':id')

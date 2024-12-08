@@ -24,6 +24,9 @@ export class LessonEntity {
 	@Column({ nullable: true })
 	homework: string
 
+	@Column()
+	groupId: string
+
 	@ManyToOne(() => DisciplineEntity, discipline => discipline.lessons)
 	@JoinColumn()
 	discipline: DisciplineEntity

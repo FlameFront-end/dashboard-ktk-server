@@ -35,6 +35,21 @@ export class LessonsService {
 		return this.lessonRepository.find()
 	}
 
+	async findByGroupAndDiscipline(
+		groupId: string,
+		disciplineId: string
+	): Promise<LessonEntity[]> {
+		return this.lessonRepository.find({
+			where: {
+				groupId: groupId,
+				discipline: {
+					id: disciplineId
+				}
+			},
+			relations: ['discipline']
+		})
+	}
+
 	async findOne(id: string): Promise<LessonEntity> {
 		const lesson = await this.lessonRepository.findOneBy({ id })
 		if (!lesson) {
