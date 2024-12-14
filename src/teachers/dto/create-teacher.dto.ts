@@ -15,5 +15,5 @@ export class CreateTeacherDto {
 
 	@IsOptional()
 	@IsString()
-	groupId?: string
+	group?: string
 }

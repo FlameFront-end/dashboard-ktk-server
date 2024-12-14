@@ -5,3 +5,4 @@ uploads
 
 .env.production
 .env.development
+.vercel

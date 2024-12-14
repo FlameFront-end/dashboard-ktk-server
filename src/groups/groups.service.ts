@@ -47,14 +47,21 @@ export class GroupsService {
 	) {}
 
 	async create(createGroupDto: CreateGroupDto): Promise<GroupEntity> {
-		const { name, teacher, students, schedule } = createGroupDto
+		const { name, teacher: teacherId, students, schedule } = createGroupDto
 
 		const teacherEntity = await this.teacherRepository.findOne({
-			where: { id: teacher }
+			where: { id: teacherId },
+			relations: ['group']
 		})
 
 		if (!teacherEntity) {
 			throw new NotFoundException('Teacher not found')
+		}
+
+		if (teacherEntity.group) {
+			throw new BadRequestException(
+				'This teacher is already assigned to a group.'
+			)
 		}
 
 		let studentEntities: StudentEntity[] = []
@@ -62,15 +69,13 @@ export class GroupsService {
 			studentEntities = await this.studentRepository.findByIds(students)
 		}
 
-		const existingGroup = await this.groupRepository.findOne({
-			where: { teacher: { id: teacher } }
+		const scheduleEntity = this.scheduleRepository.create({
+			monday: await this.processLessons(schedule.monday),
+			tuesday: await this.processLessons(schedule.tuesday),
+			wednesday: await this.processLessons(schedule.wednesday),
+			thursday: await this.processLessons(schedule.thursday),
+			friday: await this.processLessons(schedule.friday)
 		})
-
-		if (existingGroup) {
-			throw new BadRequestException(
-				'Этот учитель уже назначен на другую группу.'
-			)
-		}
 
 		const group = this.groupRepository.create({
 			name,
@@ -78,20 +83,16 @@ export class GroupsService {
 			students: studentEntities
 		})
 
-		const savedGroup = await this.groupRepository.save(group)
+		await this.scheduleRepository.save(scheduleEntity)
 
-		const resSchedule = this.scheduleRepository.create({
-			monday: await this.processLessons(schedule.monday),
-			tuesday: await this.processLessons(schedule.tuesday),
-			wednesday: await this.processLessons(schedule.wednesday),
-			thursday: await this.processLessons(schedule.thursday),
-			friday: await this.processLessons(schedule.friday),
-			group: savedGroup
-		})
+		group.schedule = scheduleEntity
 
-		savedGroup.schedule = await this.scheduleRepository.save(resSchedule)
+		await this.groupRepository.save(group)
 
-		return await this.groupRepository.save(savedGroup)
+		teacherEntity.group = group
+		await this.teacherRepository.save(teacherEntity)
+
+		return group
 	}
 
 	async update(
@@ -140,10 +141,8 @@ export class GroupsService {
 		return await this.groupRepository.save(group)
 	}
 
-	async findAll(): Promise<GroupEntity[]> {
-		return await this.groupRepository.find({
-			relations: ['schedule', 'teacher', 'students']
-		})
+	async findAll(options: any = {}): Promise<GroupEntity[]> {
+		return await this.groupRepository.find(options)
 	}
 
 	async findOne(id: string): Promise<GroupEntity> {
@@ -160,23 +159,16 @@ export class GroupsService {
 	}
 
 	async findWithoutTeacher(): Promise<GroupEntity[]> {
-		return this.groupRepository.find({
-			where: {
-				teacher: null
-			},
-			relations: ['schedule', 'students']
-		})
+		return this.groupRepository
+			.createQueryBuilder('group')
+			.leftJoinAndSelect('group.teacher', 'teacher')
+			.where('teacher.id IS NULL')
+			.getMany()
 	}
 
 	async remove(id: string): Promise<void> {
-		const group = await this.groupRepository.findOne({
-			where: { id },
-			relations: ['teacher']
-		})
-		if (group && group.teacher) {
-			group.teacher.group = null
-			await this.teacherRepository.save(group.teacher)
-		}
+		await this.gradeRepository.delete({ group: { id } })
+		await this.gradeRepository.update({ group: { id } }, { group: null })
 		await this.groupRepository.delete(id)
 	}
 

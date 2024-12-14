@@ -4,7 +4,6 @@ import {
 	Entity,
 	JoinColumn,
 	OneToMany,
-	OneToOne,
 	PrimaryGeneratedColumn,
 	UpdateDateColumn
 } from 'typeorm'
@@ -29,8 +28,8 @@ export class DisciplineEntity {
 	@OneToMany(() => GradeEntity, grade => grade.discipline)
 	grades: GradeEntity[]
 
-	@OneToOne(() => TeacherEntity, teacher => teacher.discipline)
-	teacher: DisciplineEntity
+	@OneToMany(() => TeacherEntity, teacher => teacher.discipline)
+	teachers: TeacherEntity[]
 
 	@OneToMany(() => GradeEntity, grade => grade.discipline)
 	@JoinColumn()

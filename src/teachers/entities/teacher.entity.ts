@@ -5,7 +5,8 @@ import {
 	CreateDateColumn,
 	UpdateDateColumn,
 	OneToOne,
-	JoinColumn
+	JoinColumn,
+	ManyToOne
 } from 'typeorm'
 import { GroupEntity } from '../../groups/entities/group.entity'
 import { DisciplineEntity } from '../../disciplines/entities/discipline.entity'
@@ -39,7 +40,7 @@ export class TeacherEntity {
 	@JoinColumn()
 	group: GroupEntity
 
-	@OneToOne(() => DisciplineEntity, discipline => discipline.teacher)
+	@ManyToOne(() => DisciplineEntity, discipline => discipline.teachers)
 	@JoinColumn()
 	discipline: DisciplineEntity
 }

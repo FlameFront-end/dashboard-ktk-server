@@ -29,6 +29,7 @@ export class GroupEntity {
 	updatedAt: Date
 
 	@OneToOne(() => ScheduleEntity, schedule => schedule.group, {
+		cascade: true,
 		onDelete: 'CASCADE'
 	})
 	@JoinColumn()
@@ -48,6 +49,9 @@ export class GroupEntity {
 	@JoinTable()
 	students: StudentEntity[]
 
-	@OneToMany(() => GradeEntity, grade => grade.group)
+	@OneToMany(() => GradeEntity, grade => grade.group, {
+		cascade: true,
+		onDelete: 'CASCADE'
+	})
 	grades: GradeEntity[]
 }

@@ -49,32 +49,39 @@ export class TeachersService {
 		const hashedPassword = await argon2.hash(password)
 
 		const discipline = await this.disciplineRepository.findOne({
-			where: {
-				id: createTeacherDto.discipline
-			}
+			where: { id: createTeacherDto.discipline }
 		})
 
-		const group = await this.groupRepository.findOne({
-			where: {
-				id: createTeacherDto.groupId
-			}
-		})
+		if (createTeacherDto.group) {
+			const group = await this.groupRepository.findOne({
+				where: { id: createTeacherDto.group }
+			})
 
-		const teacher = this.teacherRepository.create({
-			name: createTeacherDto.name,
-			email: createTeacherDto.email,
-			password: hashedPassword,
-			group,
-			discipline
-		})
+			await this.mailService.sendMail({
+				to: createTeacherDto.email,
+				text: `Логин: ${createTeacherDto.email}, пароль: ${password}`,
+				subject: 'Данные для входа в КТК'
+			})
 
-		await this.mailService.sendMail({
-			to: createTeacherDto.email,
-			text: `Логин: ${createTeacherDto.email}, пароль: ${password}`,
-			subject: 'Данные для входа в КТК'
-		})
+			const teacher = this.teacherRepository.create({
+				name: createTeacherDto.name,
+				email: createTeacherDto.email,
+				password: hashedPassword,
+				discipline,
+				group
+			})
 
-		return await this.teacherRepository.save(teacher)
+			return await this.teacherRepository.save(teacher)
+		} else {
+			const teacher = this.teacherRepository.create({
+				name: createTeacherDto.name,
+				email: createTeacherDto.email,
+				password: hashedPassword,
+				discipline
+			})
+
+			return await this.teacherRepository.save(teacher)
+		}
 	}
 
 	async findAll(): Promise<TeacherEntity[]> {
@@ -82,10 +89,11 @@ export class TeachersService {
 	}
 
 	async findWithoutGroup(): Promise<TeacherEntity[]> {
-		return this.teacherRepository.find({
-			where: { group: null },
-			relations: ['discipline']
-		})
+		return this.teacherRepository
+			.createQueryBuilder('teacher')
+			.leftJoinAndSelect('teacher.group', 'group')
+			.where('group.id IS NULL')
+			.getMany()
 	}
 
 	async find(id: string): Promise<TeacherEntity> {
@@ -108,9 +116,9 @@ export class TeachersService {
 			throw new NotFoundException(`Teacher with ID ${id} not found`)
 		}
 
-		const newGroup = updateTeacherDto.groupId
+		const newGroup = updateTeacherDto.group
 			? await this.groupRepository.findOne({
-					where: { id: updateTeacherDto.groupId }
+					where: { id: updateTeacherDto.group }
 				})
 			: null
 

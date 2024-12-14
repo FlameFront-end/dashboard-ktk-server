@@ -14,6 +14,8 @@ import { CreateGroupDto } from './dto/create-group.dto'
 import { ApiTags } from '@nestjs/swagger'
 import { UpdateGroupDto } from './dto/update-group.dto'
 import { SaveGradesDto } from './dto/save-grades.dto'
+import { GroupEntity } from './entities/group.entity'
+import { WithSchedule } from './decorators/with-schedule.decorator'
 
 @ApiTags('groups')
 @Controller('groups')
@@ -26,8 +28,12 @@ export class GroupsController {
 	}
 
 	@Get()
-	async findAll() {
-		return await this.groupsService.findAll()
+	async findAll(@WithSchedule() withSchedule: boolean): Promise<GroupEntity[]> {
+		const options = withSchedule
+			? { relations: ['schedule', 'teacher', 'students'] }
+			: { relations: ['schedule', 'teacher', 'students'] }
+
+		return await this.groupsService.findAll(options)
 	}
 
 	@Get('without-teacher')
