@@ -15,6 +15,7 @@ import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
 import { GradeEntity } from './entities/grade.entity'
 import * as moment from 'moment'
 import { SaveGradesDto } from './dto/save-grades.dto'
+import { ChatEntity } from '../chat/entities/chat.entity'
 
 export interface GradeData {
 	[studentId: string]: string
@@ -43,7 +44,10 @@ export class GroupsService {
 		private readonly studentRepository: Repository<StudentEntity>,
 
 		@InjectRepository(GradeEntity)
-		private readonly gradeRepository: Repository<GradeEntity>
+		private readonly gradeRepository: Repository<GradeEntity>,
+
+		@InjectRepository(ChatEntity)
+		private readonly chatRepository: Repository<ChatEntity>
 	) {}
 
 	async create(createGroupDto: CreateGroupDto): Promise<GroupEntity> {
@@ -86,11 +90,13 @@ export class GroupsService {
 		await this.scheduleRepository.save(scheduleEntity)
 
 		group.schedule = scheduleEntity
-
-		await this.groupRepository.save(group)
+		const savedGroup = await this.groupRepository.save(group)
 
 		teacherEntity.group = group
 		await this.teacherRepository.save(teacherEntity)
+
+		const chat = this.chatRepository.create({ groupId: savedGroup.id })
+		await this.chatRepository.save(chat)
 
 		return group
 	}

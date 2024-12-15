@@ -10,6 +10,7 @@ import {
 } from 'typeorm'
 import { GroupEntity } from '../../groups/entities/group.entity'
 import { GradeEntity } from '../../groups/entities/grade.entity'
+import { MessageEntity } from '../../messages/entities/message.entity'
 
 @Entity('students')
 export class StudentEntity {
@@ -48,4 +49,7 @@ export class StudentEntity {
 	})
 	@JoinColumn()
 	group: GroupEntity
+
+	@OneToMany(() => MessageEntity, message => message.sender)
+	messages: MessageEntity[]
 }

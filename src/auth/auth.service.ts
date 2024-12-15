@@ -59,4 +59,16 @@ export class AuthService {
 
 		return admin || teacher || student
 	}
+
+	async findOneById(id: string) {
+		const [admin, teacher, student] = await Promise.all([
+			this.adminRepository.findOne({ where: { id } }),
+			this.teacherRepository.findOne({
+				where: { id }
+			}),
+			this.studentRepository.findOne({ where: { id } })
+		])
+
+		return admin || teacher || student
+	}
 }

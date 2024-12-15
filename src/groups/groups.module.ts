@@ -8,6 +8,7 @@ import { TeacherEntity } from '../teachers/entities/teacher.entity'
 import { StudentEntity } from '../students/entities/student.entity'
 import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
 import { GradeEntity } from './entities/grade.entity'
+import { ChatEntity } from '../chat/entities/chat.entity'
 
 @Module({
 	imports: [
@@ -17,7 +18,8 @@ import { GradeEntity } from './entities/grade.entity'
 			TeacherEntity,
 			StudentEntity,
 			DisciplineEntity,
-			GradeEntity
+			GradeEntity,
+			ChatEntity
 		])
 	],
 	controllers: [GroupsController],

@@ -12,16 +12,21 @@ import { MailService } from '../mail/mail.service'
 import { generatePassword } from '../utils/generatePassword'
 import { AuthService } from '../auth/auth.service'
 import * as argon2 from 'argon2'
+import { ChatEntity } from '../chat/entities/chat.entity'
+import { ChatService } from '../chat/chat.service'
 
 @Injectable()
 export class StudentsService {
 	constructor(
+		private readonly mailService: MailService,
+		private readonly authService: AuthService,
+		private readonly chatService: ChatService,
+
 		@InjectRepository(StudentEntity)
 		private readonly studentRepository: Repository<StudentEntity>,
 
-		private readonly mailService: MailService,
-
-		private readonly authService: AuthService
+		@InjectRepository(ChatEntity)
+		private chatRepository: Repository<ChatEntity>
 	) {}
 
 	async create(createStudentDto: CreateStudentDto) {
@@ -47,7 +52,18 @@ export class StudentsService {
 			subject: 'Данные для входа в КТК'
 		})
 
-		return await this.studentRepository.save(student)
+		const savedStudent = await this.studentRepository.save(student)
+
+		const chat = await this.chatRepository.findOneBy({
+			groupId: student.group?.id
+		})
+
+		this.chatService.emit('newStudent', {
+			student: savedStudent,
+			chatId: chat?.id
+		})
+
+		return savedStudent
 	}
 
 	async findAll() {

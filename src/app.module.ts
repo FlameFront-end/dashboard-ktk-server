@@ -19,6 +19,11 @@ import { DisciplineEntity } from './disciplines/entities/discipline.entity'
 import { GradeEntity } from './groups/entities/grade.entity'
 import { LessonsModule } from './lessons/lessons.module'
 import { LessonEntity } from './lessons/entities/lesson.entity'
+import { ChatModule } from './chat/chat.module'
+import { MessagesModule } from './messages/messages.module'
+import { MessageEntity } from './messages/entities/message.entity'
+import { ChatEntity } from './chat/entities/chat.entity'
+import { ChatGateway } from './chat/chat.gateway'
 
 @Module({
 	imports: [
@@ -43,7 +48,9 @@ import { LessonEntity } from './lessons/entities/lesson.entity'
 				AdminEntity,
 				DisciplineEntity,
 				GradeEntity,
-				LessonEntity
+				LessonEntity,
+				MessageEntity,
+				ChatEntity
 			],
 			synchronize: true,
 			ssl:
@@ -67,7 +74,9 @@ import { LessonEntity } from './lessons/entities/lesson.entity'
 			AdminEntity,
 			DisciplineEntity,
 			GradeEntity,
-			LessonEntity
+			LessonEntity,
+			MessageEntity,
+			ChatEntity
 		]),
 		TeachersModule,
 		StudentsModule,
@@ -75,9 +84,10 @@ import { LessonEntity } from './lessons/entities/lesson.entity'
 		AdminsModule,
 		DisciplinesModule,
 		LessonsModule,
-		LessonEntity
+		LessonEntity,
+		ChatModule,
+		MessagesModule
 	],
-	controllers: [],
 	providers: []
 })
 export class AppModule {}
