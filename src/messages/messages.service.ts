@@ -27,7 +27,8 @@ export class MessagesService {
 				chat: {
 					id: chatId
 				}
-			}
+			},
+			relations: ['sender']
 		})
 	}
 
