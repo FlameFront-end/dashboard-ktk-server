@@ -43,14 +43,12 @@ export class UploadController {
 		const uploadedUrls = []
 		try {
 			for (const file of files) {
-				// Создаем форму для загрузки файла
 				const formData = new FormData()
 				formData.append('file', file.buffer, {
 					filename: `${uuidv4()}_${file.originalname}`,
 					contentType: file.mimetype
 				})
 
-				// Отправляем файл на Pinata
 				const response = await axios.post(
 					'https://api.pinata.cloud/pinning/pinFileToIPFS',
 					formData,

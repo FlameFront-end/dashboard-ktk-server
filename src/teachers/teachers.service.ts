@@ -80,6 +80,12 @@ export class TeachersService {
 				discipline
 			})
 
+			await this.mailService.sendMail({
+				to: createTeacherDto.email,
+				text: `Логин: ${createTeacherDto.email}, пароль: ${password}`,
+				subject: 'Данные для входа в КТК'
+			})
+
 			return await this.teacherRepository.save(teacher)
 		}
 	}
