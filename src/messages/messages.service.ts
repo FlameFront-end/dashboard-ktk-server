@@ -1,24 +1,23 @@
-import {
-	Injectable,
-	InternalServerErrorException,
-	NotFoundException
-} from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { MessageEntity } from './entities/message.entity'
 import { CreateMessageDto } from './dto/create-message.dto'
 import { ChatEntity } from '../chat/entities/chat.entity'
-import { AuthService } from '../auth/auth.service'
+import { StudentEntity } from '../students/entities/student.entity'
+import { TeacherEntity } from '../teachers/entities/teacher.entity'
 
 @Injectable()
 export class MessagesService {
 	constructor(
-		private readonly authService: AuthService,
-
 		@InjectRepository(MessageEntity)
 		private messageRepository: Repository<MessageEntity>,
 		@InjectRepository(ChatEntity)
-		private chatRepository: Repository<ChatEntity>
+		private chatRepository: Repository<ChatEntity>,
+		@InjectRepository(StudentEntity)
+		private studentRepository: Repository<StudentEntity>,
+		@InjectRepository(TeacherEntity)
+		private teacherRepository: Repository<TeacherEntity>
 	) {}
 
 	async getAllMessages(chatId: string): Promise<MessageEntity[]> {
@@ -28,39 +27,39 @@ export class MessagesService {
 					id: chatId
 				}
 			},
-			relations: ['sender']
+			relations: ['chat', 'studentSender', 'teacherSender']
 		})
 	}
 
 	async create(createMessageDto: CreateMessageDto): Promise<MessageEntity> {
-		const chat = await this.chatRepository.findOne({
-			where: { id: createMessageDto.chatId }
-		})
+		const { chatId, senderId, userId, senderType, text } = createMessageDto
 
-		const user = await this.authService.findOneById(createMessageDto.userId)
-
+		const chat = await this.chatRepository.findOne({ where: { id: chatId } })
 		if (!chat) {
-			throw new NotFoundException(
-				`Chat with ID ${createMessageDto.chatId} not found`
-			)
+			throw new NotFoundException(`Chat with ID ${chatId} not found`)
 		}
 
-		if (!user) {
+		let sender: StudentEntity | TeacherEntity | null = null
+
+		if (senderType === 'student') {
+			sender = await this.studentRepository.findOne({ where: { id: userId } })
+		} else if (senderType === 'teacher') {
+			sender = await this.teacherRepository.findOne({ where: { id: userId } })
+		}
+
+		if (!sender) {
 			throw new NotFoundException(
-				`User with ID ${createMessageDto.userId} not found`
+				`Sender with ID ${senderId} and type ${senderType} not found`
 			)
 		}
 
 		const newMessage = this.messageRepository.create({
-			...createMessageDto,
+			text,
 			chat,
-			sender: user
+			studentSender: senderType === 'student' ? sender : null,
+			teacherSender: senderType === 'teacher' ? sender : null
 		})
 
-		try {
-			return await this.messageRepository.save(newMessage)
-		} catch (error) {
-			throw new InternalServerErrorException('Error saving message')
-		}
+		return await this.messageRepository.save(newMessage)
 	}
 }

@@ -4,20 +4,29 @@ import {
 	Column,
 	OneToMany,
 	CreateDateColumn,
-	UpdateDateColumn
+	UpdateDateColumn,
+	OneToOne,
+	JoinColumn
 } from 'typeorm'
 import { MessageEntity } from '../../messages/entities/message.entity'
+import { GroupEntity } from '../../groups/entities/group.entity'
 
 @Entity('chats')
 export class ChatEntity {
 	@PrimaryGeneratedColumn('uuid')
 	id: string
 
-	@Column()
+	@Column({ nullable: true })
 	groupId: string
 
 	@OneToMany(() => MessageEntity, message => message.chat)
 	messages: MessageEntity[]
+
+	@OneToOne(() => GroupEntity, group => group.chat, {
+		onDelete: 'SET NULL'
+	})
+	@JoinColumn()
+	group: GroupEntity
 
 	@CreateDateColumn()
 	createdAt: Date

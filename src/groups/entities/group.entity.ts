@@ -13,6 +13,7 @@ import { ScheduleEntity } from './schedule.entity'
 import { TeacherEntity } from '../../teachers/entities/teacher.entity'
 import { StudentEntity } from '../../students/entities/student.entity'
 import { GradeEntity } from './grade.entity'
+import { ChatEntity } from '../../chat/entities/chat.entity'
 
 @Entity('groups')
 export class GroupEntity {
@@ -54,4 +55,11 @@ export class GroupEntity {
 		onDelete: 'CASCADE'
 	})
 	grades: GradeEntity[]
+
+	@OneToOne(() => ChatEntity, chat => chat.group, {
+		cascade: true,
+		onDelete: 'CASCADE'
+	})
+	@JoinColumn()
+	chat: ChatEntity
 }

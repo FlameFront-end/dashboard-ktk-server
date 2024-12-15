@@ -6,10 +6,12 @@ import {
 	UpdateDateColumn,
 	OneToOne,
 	JoinColumn,
-	ManyToOne
+	ManyToOne,
+	OneToMany
 } from 'typeorm'
 import { GroupEntity } from '../../groups/entities/group.entity'
 import { DisciplineEntity } from '../../disciplines/entities/discipline.entity'
+import { MessageEntity } from '../../messages/entities/message.entity'
 
 @Entity('teachers')
 export class TeacherEntity {
@@ -43,4 +45,9 @@ export class TeacherEntity {
 	@ManyToOne(() => DisciplineEntity, discipline => discipline.teachers)
 	@JoinColumn()
 	discipline: DisciplineEntity
+
+	@OneToMany(() => MessageEntity, message => message.teacherSender, {
+		onDelete: 'CASCADE'
+	})
+	messages: MessageEntity[]
 }

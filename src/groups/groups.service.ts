@@ -157,8 +157,6 @@ export class GroupsService {
 			relations: ['schedule', 'teacher', 'students', 'chat']
 		})
 
-		console.log('group', group)
-
 		if (!group) {
 			throw new NotFoundException('Group not found')
 		}

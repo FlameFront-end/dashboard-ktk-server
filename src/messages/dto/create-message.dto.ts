@@ -16,4 +16,7 @@ export class CreateMessageDto {
 	@IsUUID()
 	@IsNotEmpty()
 	userId: string
+
+	@IsString()
+	senderType: string
 }
