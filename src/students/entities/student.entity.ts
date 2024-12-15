@@ -50,6 +50,8 @@ export class StudentEntity {
 	@JoinColumn()
 	group: GroupEntity
 
-	@OneToMany(() => MessageEntity, message => message.sender)
+	@OneToMany(() => MessageEntity, message => message.sender, {
+		onDelete: 'CASCADE'
+	})
 	messages: MessageEntity[]
 }

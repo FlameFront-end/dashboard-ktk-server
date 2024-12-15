@@ -14,8 +14,8 @@ export class MessageEntity {
 	@PrimaryGeneratedColumn('uuid')
 	id: string
 
-	@Column()
-	senderId: string // Use senderId instead of chatId for the student
+	@Column({ nullable: true })
+	senderId: string
 
 	@Column()
 	text: string
@@ -24,9 +24,11 @@ export class MessageEntity {
 	@JoinColumn({ name: 'chatId' })
 	chat: ChatEntity
 
-	@ManyToOne(() => StudentEntity, student => student.messages, { eager: true })
-	@JoinColumn({ name: 'senderId' }) // This uses senderId to link to the student
-	sender: StudentEntity // Renamed to sender for clarity
+	@ManyToOne(() => StudentEntity, student => student.messages, {
+		onDelete: 'SET NULL'
+	})
+	@JoinColumn({ name: 'senderId' })
+	sender: StudentEntity
 
 	@CreateDateColumn()
 	createdAt: Date
