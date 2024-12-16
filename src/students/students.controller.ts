@@ -54,4 +54,10 @@ export class StudentsController {
 		await this.studentsService.delete(id)
 		return { message: `Teacher with ID ${id} deleted successfully` }
 	}
+
+	@Delete(':id/group')
+	async removeFromGroup(@Param('id') id: string): Promise<{ message: string }> {
+		await this.studentsService.removeFromGroup(id)
+		return { message: `Student with ID ${id} removed from group successfully.` }
+	}
 }

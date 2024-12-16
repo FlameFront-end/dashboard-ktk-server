@@ -71,9 +71,11 @@ export class StudentsService {
 	}
 
 	async findWithoutGroup(): Promise<StudentEntity[]> {
-		return this.studentRepository.find({
-			where: { group: null }
-		})
+		return this.studentRepository
+			.createQueryBuilder('student')
+			.leftJoinAndSelect('student.group', 'group')
+			.where('group.id IS NULL')
+			.getMany()
 	}
 
 	async findOne(id: string) {
@@ -98,5 +100,19 @@ export class StudentsService {
 
 	async delete(id: string): Promise<DeleteResult> {
 		return await this.studentRepository.delete(id)
+	}
+
+	async removeFromGroup(studentId: string): Promise<StudentEntity> {
+		const student = await this.studentRepository.findOne({
+			where: { id: studentId },
+			relations: ['group']
+		})
+
+		if (!student) {
+			throw new NotFoundException(`Student with ID ${studentId} not found`)
+		}
+
+		student.group = null
+		return this.studentRepository.save(student)
 	}
 }
