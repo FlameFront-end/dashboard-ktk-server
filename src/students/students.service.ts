@@ -14,6 +14,7 @@ import { AuthService } from '../auth/auth.service'
 import * as argon2 from 'argon2'
 import { ChatEntity } from '../chat/entities/chat.entity'
 import { ChatService } from '../chat/chat.service'
+import { GradeEntity } from '../groups/entities/grade.entity'
 
 @Injectable()
 export class StudentsService {
@@ -26,7 +27,10 @@ export class StudentsService {
 		private readonly studentRepository: Repository<StudentEntity>,
 
 		@InjectRepository(ChatEntity)
-		private chatRepository: Repository<ChatEntity>
+		private chatRepository: Repository<ChatEntity>,
+
+		@InjectRepository(GradeEntity)
+		private gradeRepository: Repository<GradeEntity>
 	) {}
 
 	async create(createStudentDto: CreateStudentDto) {
@@ -114,5 +118,49 @@ export class StudentsService {
 
 		student.group = null
 		return this.studentRepository.save(student)
+	}
+
+	async getStudentGradesGroupedByDisciplines(studentId: string): Promise<
+		{
+			discipline: string
+			grades: { id: string; grade: string; date: Date }[]
+		}[]
+	> {
+		const grades = await this.gradeRepository
+			.createQueryBuilder('grade')
+			.leftJoinAndSelect('grade.discipline', 'discipline')
+			.leftJoinAndSelect('grade.student', 'student')
+			.where('student.id = :studentId', { studentId })
+			.select(['grade.id', 'grade.grade', 'grade.date', 'discipline.name'])
+			.getMany()
+
+		if (!grades.length) {
+			throw new NotFoundException(
+				`Grades for student with ID ${studentId} not found`
+			)
+		}
+
+		const groupedByDiscipline = grades.reduce(
+			(acc, grade) => {
+				const disciplineName = grade.discipline.name
+				if (!acc[disciplineName]) {
+					acc[disciplineName] = []
+				}
+				acc[disciplineName].push({
+					id: grade.id,
+					grade: grade.grade,
+					date: grade.date
+				})
+				return acc
+			},
+			{} as {
+				[discipline: string]: { id: string; grade: string; date: Date }[]
+			}
+		)
+
+		return Object.entries(groupedByDiscipline).map(([discipline, grades]) => ({
+			discipline,
+			grades
+		}))
 	}
 }

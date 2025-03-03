@@ -7,11 +7,12 @@ import {
 	Delete,
 	Patch
 } from '@nestjs/common'
-import { ApiBody, ApiTags } from '@nestjs/swagger'
+import { ApiBody, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { StudentsService } from './students.service'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { StudentEntity } from './entities/student.entity'
 import { UpdateStudentDto } from './dto/update-student.dto'
+import { GradeEntity } from '../groups/entities/grade.entity'
 
 @ApiTags('students')
 @Controller('students')
@@ -59,5 +60,17 @@ export class StudentsController {
 	async removeFromGroup(@Param('id') id: string): Promise<{ message: string }> {
 		await this.studentsService.removeFromGroup(id)
 		return { message: `Student with ID ${id} removed from group successfully.` }
+	}
+
+	@Get(':id/grades')
+	@ApiOperation({
+		summary: 'Get all grades of a student grouped by disciplines'
+	})
+	@ApiResponse({ status: 200, description: 'Grades grouped by disciplines' })
+	@ApiResponse({ status: 404, description: 'Student not found' })
+	async getStudentGradesGroupedByDisciplines(
+		@Param('id') studentId: string
+	): Promise<any> {
+		return this.studentsService.getStudentGradesGroupedByDisciplines(studentId)
 	}
 }
