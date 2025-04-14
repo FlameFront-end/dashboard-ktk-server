@@ -8,12 +8,16 @@ import { AuthModule } from '../auth/auth.module'
 import { ChatModule } from '../chat/chat.module'
 import { ChatEntity } from '../chat/entities/chat.entity'
 import { GradeEntity } from '../groups/entities/grade.entity'
+import { MessagesModule } from '../messages/messages.module'
+import { GroupsModule } from '../groups/groups.module'
 
 @Module({
 	imports: [
 		MailModule,
 		AuthModule,
 		ChatModule,
+		MessagesModule,
+		GroupsModule,
 		TypeOrmModule.forFeature([StudentEntity, ChatEntity, GradeEntity])
 	],
 	controllers: [StudentsController],

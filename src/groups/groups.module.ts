@@ -9,9 +9,11 @@ import { StudentEntity } from '../students/entities/student.entity'
 import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
 import { GradeEntity } from './entities/grade.entity'
 import { ChatEntity } from '../chat/entities/chat.entity'
+import { MessagesModule } from '../messages/messages.module'
 
 @Module({
 	imports: [
+		MessagesModule,
 		TypeOrmModule.forFeature([
 			GroupEntity,
 			ScheduleEntity,
@@ -23,6 +25,7 @@ import { ChatEntity } from '../chat/entities/chat.entity'
 		])
 	],
 	controllers: [GroupsController],
-	providers: [GroupsService]
+	providers: [GroupsService],
+	exports: [GroupsService]
 })
 export class GroupsModule {}

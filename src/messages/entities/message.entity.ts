@@ -7,16 +7,20 @@ import {
 	JoinColumn
 } from 'typeorm'
 import { ChatEntity } from '../../chat/entities/chat.entity'
-import { StudentEntity } from '../../students/entities/student.entity'
-import { TeacherEntity } from '../../teachers/entities/teacher.entity' //Import TeacherEntity
+
+export type SenderType = 'student' | 'teacher' | 'system'
+
+export interface SenderMessage {
+	id: string
+	name: string
+	phone: string | undefined
+	email: string
+}
 
 @Entity('messages')
 export class MessageEntity {
 	@PrimaryGeneratedColumn('uuid')
 	id: string
-
-	@Column({ nullable: true })
-	senderId: string
 
 	@Column()
 	text: string
@@ -28,17 +32,9 @@ export class MessageEntity {
 	@CreateDateColumn()
 	createdAt: Date
 
-	@ManyToOne(() => StudentEntity, student => student.messages, {
-		onDelete: 'SET NULL',
-		nullable: true
-	})
-	@JoinColumn({ name: 'studentSenderId' })
-	studentSender: StudentEntity | null
+	@Column({ type: 'jsonb' })
+	sender: SenderMessage
 
-	@ManyToOne(() => TeacherEntity, teacher => teacher.messages, {
-		onDelete: 'SET NULL',
-		nullable: true
-	})
-	@JoinColumn({ name: 'teacherSenderId' })
-	teacherSender: TeacherEntity | null
+	@Column({ type: 'enum', enum: ['student', 'teacher', 'system'] })
+	senderType: SenderType
 }

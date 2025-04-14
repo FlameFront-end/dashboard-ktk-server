@@ -15,6 +15,8 @@ import * as argon2 from 'argon2'
 import { ChatEntity } from '../chat/entities/chat.entity'
 import { ChatService } from '../chat/chat.service'
 import { GradeEntity } from '../groups/entities/grade.entity'
+import { MessagesService } from '../messages/messages.service'
+import { GroupsService } from '../groups/groups.service'
 
 @Injectable()
 export class StudentsService {
@@ -22,6 +24,8 @@ export class StudentsService {
 		private readonly mailService: MailService,
 		private readonly authService: AuthService,
 		private readonly chatService: ChatService,
+		private readonly messagesService: MessagesService,
+		private readonly groupsService: GroupsService,
 
 		@InjectRepository(StudentEntity)
 		private readonly studentRepository: Repository<StudentEntity>,
@@ -33,6 +37,22 @@ export class StudentsService {
 		private gradeRepository: Repository<GradeEntity>
 	) {}
 
+	async sendGroupChangeMessage(student: any, message: string, chatId: string) {
+		this.chatService.broadcastParticipantUpdate(message, chatId, {
+			id: student.id,
+			name: 'Системное оповещание',
+			phone: student.phone,
+			email: student.email
+		})
+
+		await this.messagesService.create({
+			text: message,
+			chatId: chatId,
+			senderId: 'system',
+			senderType: 'system',
+			userId: null
+		})
+	}
 	async create(createStudentDto: CreateStudentDto) {
 		const existUser = await this.authService.findOneByEmail(
 			createStudentDto.email
@@ -45,8 +65,11 @@ export class StudentsService {
 		const password = generatePassword()
 		const hashedPassword = await argon2.hash(password)
 
+		const group = await this.groupsService.findOne(createStudentDto.groupId)
+
 		const student = this.studentRepository.create({
 			...createStudentDto,
+			group,
 			password: hashedPassword
 		})
 
@@ -58,14 +81,19 @@ export class StudentsService {
 
 		const savedStudent = await this.studentRepository.save(student)
 
-		const chat = await this.chatRepository.findOneBy({
-			groupId: student.group?.id
-		})
+		if (savedStudent.group.id) {
+			const chat = await this.chatRepository.findOneBy({
+				groupId: savedStudent.group.id
+			})
 
-		this.chatService.emit('newStudent', {
-			student: savedStudent,
-			chatId: chat?.id
-		})
+			if (chat) {
+				await this.sendGroupChangeMessage(
+					student,
+					`👋 Новый студент ${student.name} присоединился к группе.`,
+					chat.id
+				)
+			}
+		}
 
 		return savedStudent
 	}
@@ -94,27 +122,104 @@ export class StudentsService {
 	}
 
 	async update(id: string, updateStudentDto: UpdateStudentDto) {
-		const student = await this.studentRepository.findOne({ where: { id } })
+		const student = await this.studentRepository.findOne({
+			where: { id },
+			relations: ['group', 'group.chat']
+		})
+
 		if (!student) {
 			throw new NotFoundException(`Student with ID ${id} not found`)
 		}
+
+		const oldGroup = student.group
+
+		// Если у студента нет группы, присваиваем новую
+		if (!oldGroup) {
+			student.group = await this.groupsService.findOne(updateStudentDto.groupId)
+			if (!student.group) {
+				throw new NotFoundException(
+					`Group with ID ${updateStudentDto.groupId} not found`
+				)
+			}
+		}
+
+		const newGroup = await this.groupsService.findOne(updateStudentDto.groupId)
+
+		if (!newGroup) {
+			throw new NotFoundException(
+				`Group with ID ${updateStudentDto.groupId} not found`
+			)
+		}
+
+		student.group = newGroup
 		Object.assign(student, updateStudentDto)
-		return this.studentRepository.save(student)
+
+		await this.studentRepository.save(student)
+
+		// Отправка сообщений, если группа изменена или если у студента не было группы
+		if (oldGroup) {
+			// Если группа изменилась, отправляем сообщение о покидании старой группы
+			if (oldGroup.id !== newGroup.id && oldGroup.chat) {
+				await this.sendGroupChangeMessage(
+					student,
+					`👋 Студент ${student.name} покинул группу.`,
+					oldGroup.chat.id
+				)
+			}
+		}
+
+		// Отправка сообщения в новую группу, что студент присоединился
+		if (newGroup.chat) {
+			await this.sendGroupChangeMessage(
+				student,
+				`👋 Новый студент ${student.name} присоединился к группе.`,
+				newGroup.chat.id
+			)
+		}
+
+		return student
 	}
 
 	async delete(id: string): Promise<DeleteResult> {
-		return await this.studentRepository.delete(id)
+		const student = await this.studentRepository.findOne({
+			where: { id },
+			relations: ['group', 'group.chat']
+		})
+
+		if (!student) {
+			throw new NotFoundException(`Student with ID ${id} not found`)
+		}
+
+		const group = student.group
+
+		const result = await this.studentRepository.delete(id)
+
+		if (group && group.chat) {
+			await this.sendGroupChangeMessage(
+				student,
+				`👋 Студент ${student.name} покинул группу.`,
+				group.chat.id
+			)
+		}
+
+		return result
 	}
 
 	async removeFromGroup(studentId: string): Promise<StudentEntity> {
 		const student = await this.studentRepository.findOne({
 			where: { id: studentId },
-			relations: ['group']
+			relations: ['group', 'group.chat']
 		})
 
 		if (!student) {
 			throw new NotFoundException(`Student with ID ${studentId} not found`)
 		}
+
+		await this.sendGroupChangeMessage(
+			student,
+			`👋 Студент ${student.name} покинул группу.`,
+			student.group.chat.id
+		)
 
 		student.group = null
 		return this.studentRepository.save(student)

@@ -4,7 +4,6 @@ import {
 	PrimaryGeneratedColumn,
 	OneToOne,
 	JoinColumn,
-	JoinTable,
 	CreateDateColumn,
 	UpdateDateColumn,
 	OneToMany
@@ -40,14 +39,14 @@ export class GroupEntity {
 		cascade: true,
 		onDelete: 'SET NULL'
 	})
-	@JoinTable()
+	@JoinColumn()
 	teacher: TeacherEntity
 
 	@OneToMany(() => StudentEntity, students => students.group, {
 		cascade: true,
 		onDelete: 'SET NULL'
 	})
-	@JoinTable()
+	@JoinColumn()
 	students: StudentEntity[]
 
 	@OneToMany(() => GradeEntity, grade => grade.group, {

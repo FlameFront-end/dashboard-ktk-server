@@ -23,3 +23,5 @@ export interface UserRequest extends Request {
 		username: string
 	}
 }
+
+interface SystemSender {}

@@ -45,9 +45,4 @@ export class TeacherEntity {
 	@ManyToOne(() => DisciplineEntity, discipline => discipline.teachers)
 	@JoinColumn()
 	discipline: DisciplineEntity
-
-	@OneToMany(() => MessageEntity, message => message.teacherSender, {
-		onDelete: 'CASCADE'
-	})
-	messages: MessageEntity[]
 }

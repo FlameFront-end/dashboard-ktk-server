@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { MessageEntity } from './entities/message.entity'
+import { MessageEntity, SenderMessage } from './entities/message.entity'
 import { CreateMessageDto } from './dto/create-message.dto'
 import { ChatEntity } from '../chat/entities/chat.entity'
 import { StudentEntity } from '../students/entities/student.entity'
@@ -27,7 +27,7 @@ export class MessagesService {
 					id: chatId
 				}
 			},
-			relations: ['chat', 'studentSender', 'teacherSender']
+			relations: ['chat']
 		})
 	}
 
@@ -39,12 +39,35 @@ export class MessagesService {
 			throw new NotFoundException(`Chat with ID ${chatId} not found`)
 		}
 
-		let sender: StudentEntity | TeacherEntity | null = null
+		let sender: SenderMessage
 
 		if (senderType === 'student') {
-			sender = await this.studentRepository.findOne({ where: { id: userId } })
+			const student = await this.studentRepository.findOne({
+				where: { id: userId }
+			})
+			sender = {
+				id: student.id,
+				name: student.name,
+				phone: student.phone,
+				email: student.email
+			}
 		} else if (senderType === 'teacher') {
-			sender = await this.teacherRepository.findOne({ where: { id: userId } })
+			const teacher = await this.teacherRepository.findOne({
+				where: { id: userId }
+			})
+			sender = {
+				id: teacher.id,
+				name: teacher.name,
+				phone: undefined,
+				email: teacher.email
+			}
+		} else if (senderType === 'system') {
+			sender = {
+				id: 'system',
+				name: 'Системное оповещение',
+				phone: undefined,
+				email: ''
+			}
 		}
 
 		if (!sender) {
@@ -56,8 +79,8 @@ export class MessagesService {
 		const newMessage = this.messageRepository.create({
 			text,
 			chat,
-			studentSender: senderType === 'student' ? sender : null,
-			teacherSender: senderType === 'teacher' ? sender : null
+			senderType,
+			sender
 		})
 
 		return await this.messageRepository.save(newMessage)

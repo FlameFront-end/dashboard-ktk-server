@@ -8,6 +8,7 @@ import {
 import { Server, Socket } from 'socket.io'
 import { Inject } from '@nestjs/common'
 import { MessagesService } from '../messages/messages.service'
+import { MessageEntity } from '../messages/entities/message.entity'
 
 @WebSocketGateway({ cors: true })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -20,7 +21,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	private clientsInRooms = new Map<string, Set<string>>()
 
 	handleConnection(client: Socket) {
-		console.log(`Client connected: ${client.id}`)
+		// console.log(`Client connected: ${client.id}`)
 	}
 
 	@SubscribeMessage('joinRoom')
@@ -34,7 +35,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		const roomClients = this.clientsInRooms.get(chatId)!
 		roomClients.add(client.id)
 		client.join(chatId)
-		console.log(`Client ${client.id} joined room ${chatId}`)
 	}
 
 	@SubscribeMessage('leaveRoom')
@@ -57,7 +57,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			userId: string
 			chatId: string
 			message: string
-			senderType: string
+			senderType: 'student' | 'teacher' | 'system'
 		}
 	) {
 		const newMessage = await this.messageService.create({
@@ -78,10 +78,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 				this.clientsInRooms.delete(roomId)
 			}
 		})
-		console.log(`Client disconnected: ${client.id}`)
+		// console.log(`Client disconnected: ${client.id}`)
 	}
 
 	emit(event: string, data: any) {
 		this.server.emit(event, data)
+	}
+
+	broadcastParticipantUpdate(chatId: string, message: MessageEntity) {
+		this.server.to(chatId).emit('participantUpdate', message)
 	}
 }

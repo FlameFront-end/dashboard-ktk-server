@@ -16,6 +16,7 @@ import { GradeEntity } from './entities/grade.entity'
 import * as moment from 'moment'
 import { SaveGradesDto } from './dto/save-grades.dto'
 import { ChatEntity } from '../chat/entities/chat.entity'
+import { MessagesService } from '../messages/messages.service'
 
 export interface GradeData {
 	[studentId: string]: string
@@ -47,7 +48,9 @@ export class GroupsService {
 		private readonly gradeRepository: Repository<GradeEntity>,
 
 		@InjectRepository(ChatEntity)
-		private readonly chatRepository: Repository<ChatEntity>
+		private readonly chatRepository: Repository<ChatEntity>,
+
+		private readonly messagesService: MessagesService
 	) {}
 
 	async create(createGroupDto: CreateGroupDto): Promise<GroupEntity> {
@@ -87,18 +90,33 @@ export class GroupsService {
 			students: studentEntities
 		})
 
+		// Сохраняем расписание
 		await this.scheduleRepository.save(scheduleEntity)
-
 		group.schedule = scheduleEntity
+
+		// Сохраняем группу (без чата пока)
 		const savedGroup = await this.groupRepository.save(group)
 
-		teacherEntity.group = group
-		await this.teacherRepository.save(teacherEntity)
-
+		// Создаём чат
 		const chat = this.chatRepository.create({ groupId: savedGroup.id })
-		await this.chatRepository.save(chat)
+		const savedChat = await this.chatRepository.save(chat)
 
-		return group
+		// Обновляем группу с чатом
+		savedGroup.chat = savedChat
+		await this.groupRepository.save(savedGroup)
+
+		// Обновляем учителя, связываем с группой
+		await this.teacherRepository.update(teacherId, { group: savedGroup })
+
+		await this.messagesService.create({
+			text: `Группа "${savedGroup.name}" создана. Участники добавлены в чат.`,
+			chatId: savedChat.id,
+			senderId: null,
+			senderType: 'system',
+			userId: null
+		})
+
+		return savedGroup
 	}
 
 	async update(

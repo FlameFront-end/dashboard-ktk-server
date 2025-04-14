@@ -23,7 +23,6 @@ import { ChatModule } from './chat/chat.module'
 import { MessagesModule } from './messages/messages.module'
 import { MessageEntity } from './messages/entities/message.entity'
 import { ChatEntity } from './chat/entities/chat.entity'
-import { ChatGateway } from './chat/chat.gateway'
 
 @Module({
 	imports: [

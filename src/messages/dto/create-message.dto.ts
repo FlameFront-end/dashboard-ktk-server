@@ -18,5 +18,5 @@ export class CreateMessageDto {
 	userId: string
 
 	@IsString()
-	senderType: string
+	senderType: 'student' | 'teacher' | 'system'
 }
