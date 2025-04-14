@@ -10,10 +10,12 @@ import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
 import { GradeEntity } from './entities/grade.entity'
 import { ChatEntity } from '../chat/entities/chat.entity'
 import { MessagesModule } from '../messages/messages.module'
+import { ChatModule } from '../chat/chat.module'
 
 @Module({
 	imports: [
 		MessagesModule,
+		ChatModule,
 		TypeOrmModule.forFeature([
 			GroupEntity,
 			ScheduleEntity,

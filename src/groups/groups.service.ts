@@ -17,6 +17,7 @@ import * as moment from 'moment'
 import { SaveGradesDto } from './dto/save-grades.dto'
 import { ChatEntity } from '../chat/entities/chat.entity'
 import { MessagesService } from '../messages/messages.service'
+import { ChatService } from '../chat/chat.service'
 
 export interface GradeData {
 	[studentId: string]: string
@@ -29,6 +30,8 @@ export interface DisciplineGrades {
 @Injectable()
 export class GroupsService {
 	constructor(
+		private readonly chatService: ChatService,
+
 		@InjectRepository(GroupEntity)
 		private readonly groupRepository: Repository<GroupEntity>,
 
@@ -52,6 +55,23 @@ export class GroupsService {
 
 		private readonly messagesService: MessagesService
 	) {}
+
+	async sendGroupChangeMessage(student: any, message: string, chatId: string) {
+		this.chatService.broadcastParticipantUpdate(message, chatId, {
+			id: student.id,
+			name: 'Системное оповещание',
+			phone: student.phone,
+			email: student.email
+		})
+
+		await this.messagesService.create({
+			text: message,
+			chatId: chatId,
+			senderId: 'system',
+			senderType: 'system',
+			userId: null
+		})
+	}
 
 	async create(createGroupDto: CreateGroupDto): Promise<GroupEntity> {
 		const { name, teacher: teacherId, students, schedule } = createGroupDto
@@ -125,7 +145,7 @@ export class GroupsService {
 	): Promise<GroupEntity> {
 		const group = await this.groupRepository.findOne({
 			where: { id },
-			relations: ['schedule', 'teacher', 'students']
+			relations: ['schedule', 'teacher', 'students', 'chat']
 		})
 
 		if (!group) {
@@ -134,12 +154,122 @@ export class GroupsService {
 
 		const { name, teacher, students, schedule } = updateGroupDto
 
+		// Handle the new teacher
+		let newTeacher
 		if (teacher) {
-			group.teacher = await this.teacherRepository.findOne({
+			newTeacher = await this.teacherRepository.findOne({
 				where: { id: teacher }
 			})
+			if (!newTeacher) {
+				throw new NotFoundException(`Teacher with ID ${teacher} not found`)
+			}
+
+			if (group.teacher?.id !== newTeacher.id) {
+				group.teacher = newTeacher
+			}
 		}
 
+		if (group.chat && schedule) {
+			const daysOfWeek = [
+				'monday',
+				'tuesday',
+				'wednesday',
+				'thursday',
+				'friday'
+			]
+
+			for (const day of daysOfWeek) {
+				const oldDaySchedule = group.schedule[day] || []
+				const newDaySchedule = schedule[day] || []
+
+				const oldByTeacher = new Map<string, typeof oldDaySchedule>()
+				const newByTeacher = new Map<string, typeof newDaySchedule>()
+
+				// Группируем старое расписание по учителям
+				for (const lesson of oldDaySchedule) {
+					if (!lesson.teacher) continue
+					const list = oldByTeacher.get(lesson.teacher.id) || []
+					oldByTeacher.set(lesson.teacher.id, [...list, lesson])
+				}
+
+				// Группируем новое расписание по учителям
+				for (const lesson of newDaySchedule) {
+					if (!lesson.teacher) continue
+					const list = newByTeacher.get(lesson.teacher.id) || []
+					newByTeacher.set(lesson.teacher.id, [...list, lesson])
+				}
+
+				// ✅ Изменение дисциплины у того же учителя
+				for (const [teacherId, oldLessons] of oldByTeacher) {
+					const newLessons = newByTeacher.get(teacherId)
+
+					if (newLessons) {
+						const oldDisciplines = oldLessons.map(l => l.discipline.id)
+						const newDisciplines = newLessons.map(l => l.discipline.id)
+
+						const removed = oldLessons.find(
+							l => !newDisciplines.includes(l.discipline.id)
+						)
+						const added = newLessons.find(
+							l => !oldDisciplines.includes(l.discipline.id)
+						)
+
+						if (removed && added) {
+							await this.sendGroupChangeMessage(
+								removed.teacher,
+								`👨‍🏫 Учитель ${removed.teacher.name} больше не ведет дисциплину ${removed.discipline.name}, теперь ведет ${added.discipline.name}.`,
+								group.chat.id
+							)
+						}
+					}
+				}
+
+				// ✅ Изменение преподавателя у той же дисциплины
+				for (const oldLesson of oldDaySchedule) {
+					const newLesson = newDaySchedule.find(
+						l =>
+							l.discipline.id === oldLesson.discipline.id &&
+							l.teacher?.id !== oldLesson.teacher?.id
+					)
+
+					if (newLesson && oldLesson.teacher && newLesson.teacher) {
+						await this.sendGroupChangeMessage(
+							newLesson.teacher,
+							`👨‍🏫 У дисциплины ${newLesson.discipline.name} сменился преподаватель: был ${oldLesson.teacher.name}, стал ${newLesson.teacher.name}.`,
+							group.chat.id
+						)
+					}
+				}
+
+				// 👋 Преподаватели, полностью ушедшие
+				for (const [teacherId, oldLessons] of oldByTeacher) {
+					if (!newByTeacher.has(teacherId)) {
+						for (const lesson of oldLessons) {
+							await this.sendGroupChangeMessage(
+								lesson.teacher,
+								`👋 Учитель ${lesson.teacher.name} больше не ведет лекцию по дисциплине ${lesson.discipline.name}.`,
+								group.chat.id
+							)
+						}
+					}
+				}
+
+				// 👋 Преподаватели, полностью новые
+				for (const [teacherId, newLessons] of newByTeacher) {
+					if (!oldByTeacher.has(teacherId)) {
+						for (const lesson of newLessons) {
+							await this.sendGroupChangeMessage(
+								lesson.teacher,
+								`👋 Новый учитель ${lesson.teacher.name} присоединился к группе по дисциплине ${lesson.discipline.name}.`,
+								group.chat.id
+							)
+						}
+					}
+				}
+			}
+		}
+
+		// Обновление студентов
 		if (students) {
 			group.students = await this.studentRepository.findByIds(students)
 		}
@@ -148,6 +278,7 @@ export class GroupsService {
 			group.name = name
 		}
 
+		// Обновление расписания
 		if (schedule) {
 			group.schedule.monday = await this.processLessons(schedule.monday || [])
 			group.schedule.tuesday = await this.processLessons(schedule.tuesday || [])
