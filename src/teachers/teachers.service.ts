@@ -122,20 +122,17 @@ export class TeachersService {
 			throw new NotFoundException(`Teacher with ID ${id} not found`)
 		}
 
-		// Найти новую группу, если передана
 		const newGroup = updateTeacherDto.group
 			? await this.groupRepository.findOne({
 					where: { id: updateTeacherDto.group }
 				})
 			: null
 
-		// Получить список дисциплин по переданным ID (discipline**s**Ids)
 		const disciplineIds = updateTeacherDto.disciplinesIds ?? []
 		const newDisciplines = disciplineIds.length
 			? await this.disciplineRepository.findBy({ id: In(disciplineIds) })
 			: []
 
-		// Извлечь ненужные поля перед assign
 		const { disciplinesIds, group, ...rest } = updateTeacherDto
 		Object.assign(teacher, rest)
 
@@ -144,7 +141,6 @@ export class TeachersService {
 
 		const savedTeacher = await this.teacherRepository.save(teacher)
 
-		// Обновить расписание
 		if (savedTeacher.group) {
 			const schedule = await this.scheduleRepository.findOne({
 				where: { group: { id: savedTeacher.group.id } },
