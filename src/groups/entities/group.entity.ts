@@ -4,9 +4,11 @@ import {
 	PrimaryGeneratedColumn,
 	OneToOne,
 	JoinColumn,
+	JoinTable,
 	CreateDateColumn,
 	UpdateDateColumn,
-	OneToMany
+	OneToMany,
+	ManyToMany
 } from 'typeorm'
 import { ScheduleEntity } from './schedule.entity'
 import { TeacherEntity } from '../../teachers/entities/teacher.entity'
@@ -35,18 +37,11 @@ export class GroupEntity {
 	@JoinColumn()
 	schedule: ScheduleEntity
 
-	@OneToOne(() => TeacherEntity, teacher => teacher.group, {
-		cascade: true,
-		onDelete: 'SET NULL'
-	})
-	@JoinColumn()
-	teacher: TeacherEntity
-
 	@OneToMany(() => StudentEntity, students => students.group, {
 		cascade: true,
 		onDelete: 'SET NULL'
 	})
-	@JoinColumn()
+	@JoinTable()
 	students: StudentEntity[]
 
 	@OneToMany(() => GradeEntity, grade => grade.group, {
@@ -61,4 +56,14 @@ export class GroupEntity {
 	})
 	@JoinColumn()
 	chat: ChatEntity
+
+	@OneToOne(() => TeacherEntity, teacher => teacher.group, {
+		cascade: true,
+		onDelete: 'SET NULL'
+	})
+	@JoinColumn()
+	teacher: TeacherEntity
+
+	@ManyToMany(() => TeacherEntity, teacher => teacher.teachingGroups)
+	teachingTeachers: TeacherEntity[]
 }

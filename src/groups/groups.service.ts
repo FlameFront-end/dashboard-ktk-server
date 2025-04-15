@@ -110,22 +110,17 @@ export class GroupsService {
 			students: studentEntities
 		})
 
-		// Сохраняем расписание
 		await this.scheduleRepository.save(scheduleEntity)
 		group.schedule = scheduleEntity
 
-		// Сохраняем группу (без чата пока)
 		const savedGroup = await this.groupRepository.save(group)
 
-		// Создаём чат
 		const chat = this.chatRepository.create({ groupId: savedGroup.id })
 		const savedChat = await this.chatRepository.save(chat)
 
-		// Обновляем группу с чатом
 		savedGroup.chat = savedChat
 		await this.groupRepository.save(savedGroup)
 
-		// Обновляем учителя, связываем с группой
 		await this.teacherRepository.update(teacherId, { group: savedGroup })
 
 		await this.messagesService.create({
@@ -148,24 +143,80 @@ export class GroupsService {
 			relations: ['schedule', 'teacher', 'students', 'chat']
 		})
 
+		console.log('updateGroupDto', updateGroupDto)
+
 		if (!group) {
 			throw new NotFoundException('Group not found')
 		}
 
 		const { name, teacher, students, schedule } = updateGroupDto
 
-		// Handle the new teacher
-		let newTeacher
-		if (teacher) {
-			newTeacher = await this.teacherRepository.findOne({
-				where: { id: teacher }
-			})
-			if (!newTeacher) {
-				throw new NotFoundException(`Teacher with ID ${teacher} not found`)
-			}
+		// // Handle the new teacher
+		// let newTeacher
+		// if (teacher) {
+		// 	newTeacher = await this.teacherRepository.findOne({
+		// 		where: { id: teacher }
+		// 	})
+		// 	if (!newTeacher) {
+		// 		throw new NotFoundException(`Teacher with ID ${teacher} not found`)
+		// 	}
+		//
+		// 	if (group.teacher?.id !== newTeacher.id) {
+		// 		group.teacher = newTeacher
+		// 	}
+		// }
 
-			if (group.teacher?.id !== newTeacher.id) {
-				group.teacher = newTeacher
+		const allTeacherMap = new Map<string, TeacherEntity>()
+		const teachingTeacherIds = new Set<string>()
+
+		for (const day of [
+			'monday',
+			'tuesday',
+			'wednesday',
+			'thursday',
+			'friday'
+		]) {
+			const lessons = schedule?.[day] || []
+
+			for (const lesson of lessons) {
+				const teacher = lesson.teacher
+				if (!teacher?.id) continue
+
+				teachingTeacherIds.add(teacher.id)
+
+				if (!allTeacherMap.has(teacher.id)) {
+					const dbTeacher = await this.teacherRepository.findOne({
+						where: { id: teacher.id },
+						relations: ['teachingGroups']
+					})
+					if (dbTeacher) {
+						allTeacherMap.set(teacher.id, dbTeacher)
+					}
+				}
+			}
+		}
+
+		// Добавление преподавателей в teachingGroups
+		for (const teacherId of teachingTeacherIds) {
+			const teacher = allTeacherMap.get(teacherId)
+			if (!teacher) continue
+
+			const alreadyInGroup = teacher.teachingGroups?.some(
+				g => g.id === group.id
+			)
+			if (!alreadyInGroup) {
+				teacher.teachingGroups = [...(teacher.teachingGroups || []), group]
+				await this.teacherRepository.save(teacher)
+			}
+		}
+
+		// Удаление тех, кто больше не преподаёт в этой группе
+		for (const [teacherId, teacher] of allTeacherMap.entries()) {
+			if (!teachingTeacherIds.has(teacherId)) {
+				teacher.teachingGroups = (teacher.teachingGroups || []).filter(
+					g => g.id !== group.id
+				)
+				await this.teacherRepository.save(teacher)
 			}
 		}
 

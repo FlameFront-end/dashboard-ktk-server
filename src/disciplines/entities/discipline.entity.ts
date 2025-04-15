@@ -2,7 +2,7 @@ import {
 	Column,
 	CreateDateColumn,
 	Entity,
-	JoinColumn,
+	ManyToMany,
 	OneToMany,
 	PrimaryGeneratedColumn,
 	UpdateDateColumn
@@ -28,10 +28,9 @@ export class DisciplineEntity {
 	@OneToMany(() => GradeEntity, grade => grade.discipline)
 	grades: GradeEntity[]
 
-	@OneToMany(() => TeacherEntity, teacher => teacher.discipline)
-	teachers: TeacherEntity[]
-
-	@OneToMany(() => GradeEntity, grade => grade.discipline)
-	@JoinColumn()
+	@OneToMany(() => LessonEntity, lesson => lesson.discipline)
 	lessons: LessonEntity[]
+
+	@ManyToMany(() => TeacherEntity, teacher => teacher.disciplines)
+	teachers: TeacherEntity[]
 }

@@ -4,7 +4,7 @@ import {
 	NotFoundException
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DeleteResult, Repository } from 'typeorm'
+import { DeleteResult, In, Repository } from 'typeorm'
 import { CreateTeacherDto } from './dto/create-teacher.dto'
 import { TeacherEntity } from './entities/teacher.entity'
 import { UpdateTeacherDto } from './dto/update-teacher.dto'
@@ -48,8 +48,19 @@ export class TeachersService {
 		const password = generatePassword()
 		const hashedPassword = await argon2.hash(password)
 
-		const discipline = await this.disciplineRepository.findOne({
-			where: { id: createTeacherDto.discipline }
+		const disciplines = await this.disciplineRepository.find({
+			where: createTeacherDto.disciplinesIds.map(id => ({ id }))
+		})
+
+		if (disciplines.length !== createTeacherDto.disciplinesIds.length) {
+			throw new NotFoundException('Some disciplines were not found')
+		}
+
+		const teacher = this.teacherRepository.create({
+			name: createTeacherDto.name,
+			email: createTeacherDto.email,
+			password: hashedPassword,
+			disciplines
 		})
 
 		if (createTeacherDto.group) {
@@ -57,41 +68,24 @@ export class TeachersService {
 				where: { id: createTeacherDto.group }
 			})
 
-			await this.mailService.sendMail({
-				to: createTeacherDto.email,
-				text: `Логин: ${createTeacherDto.email}, пароль: ${password}`,
-				subject: 'Данные для входа в КТК'
-			})
+			if (!group) {
+				throw new NotFoundException('Group not found')
+			}
 
-			const teacher = this.teacherRepository.create({
-				name: createTeacherDto.name,
-				email: createTeacherDto.email,
-				password: hashedPassword,
-				discipline,
-				group
-			})
-
-			return await this.teacherRepository.save(teacher)
-		} else {
-			const teacher = this.teacherRepository.create({
-				name: createTeacherDto.name,
-				email: createTeacherDto.email,
-				password: hashedPassword,
-				discipline
-			})
-
-			await this.mailService.sendMail({
-				to: createTeacherDto.email,
-				text: `Логин: ${createTeacherDto.email}, пароль: ${password}`,
-				subject: 'Данные для входа в КТК'
-			})
-
-			return await this.teacherRepository.save(teacher)
+			teacher.group = group
 		}
+
+		await this.mailService.sendMail({
+			to: createTeacherDto.email,
+			text: `Логин: ${createTeacherDto.email}, пароль: ${password}`,
+			subject: 'Данные для входа в КТК'
+		})
+
+		return await this.teacherRepository.save(teacher)
 	}
 
 	async findAll(): Promise<TeacherEntity[]> {
-		return this.teacherRepository.find({ relations: ['group', 'discipline'] })
+		return this.teacherRepository.find({ relations: ['group', 'disciplines'] })
 	}
 
 	async findWithoutGroup(): Promise<TeacherEntity[]> {
@@ -105,7 +99,12 @@ export class TeachersService {
 	async find(id: string): Promise<TeacherEntity> {
 		const teacher = await this.teacherRepository.findOne({
 			where: { id },
-			relations: ['group', 'discipline']
+			relations: [
+				'group',
+				'disciplines',
+				'teachingGroups',
+				'teachingGroups.chat'
+			]
 		})
 		if (!teacher) {
 			throw new NotFoundException(`Teacher with ID ${id} not found`)
@@ -116,25 +115,36 @@ export class TeachersService {
 	async update(id: string, updateTeacherDto: UpdateTeacherDto) {
 		const teacher = await this.teacherRepository.findOne({
 			where: { id },
-			relations: ['group']
+			relations: ['group', 'disciplines']
 		})
+
 		if (!teacher) {
 			throw new NotFoundException(`Teacher with ID ${id} not found`)
 		}
 
+		// Найти новую группу, если передана
 		const newGroup = updateTeacherDto.group
 			? await this.groupRepository.findOne({
 					where: { id: updateTeacherDto.group }
 				})
 			: null
 
-		Object.assign(teacher, updateTeacherDto)
-		if (newGroup) {
-			teacher.group = newGroup
-		}
+		// Получить список дисциплин по переданным ID (discipline**s**Ids)
+		const disciplineIds = updateTeacherDto.disciplinesIds ?? []
+		const newDisciplines = disciplineIds.length
+			? await this.disciplineRepository.findBy({ id: In(disciplineIds) })
+			: []
+
+		// Извлечь ненужные поля перед assign
+		const { disciplinesIds, group, ...rest } = updateTeacherDto
+		Object.assign(teacher, rest)
+
+		teacher.group = newGroup ?? null
+		teacher.disciplines = newDisciplines
 
 		const savedTeacher = await this.teacherRepository.save(teacher)
 
+		// Обновить расписание
 		if (savedTeacher.group) {
 			const schedule = await this.scheduleRepository.findOne({
 				where: { group: { id: savedTeacher.group.id } },
@@ -162,6 +172,7 @@ export class TeachersService {
 					schedule.friday,
 					savedTeacher
 				)
+
 				await this.scheduleRepository.save(schedule)
 			}
 		}
