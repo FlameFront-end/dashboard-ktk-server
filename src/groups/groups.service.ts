@@ -18,6 +18,7 @@ import { SaveGradesDto } from './dto/save-grades.dto'
 import { ChatEntity } from '../chat/entities/chat.entity'
 import { MessagesService } from '../messages/messages.service'
 import { ChatService } from '../chat/chat.service'
+import { plainToClass } from 'class-transformer'
 
 export interface GradeData {
 	[studentId: string]: string
@@ -104,24 +105,65 @@ export class GroupsService {
 			friday: await this.processLessons(schedule.friday)
 		})
 
+		await this.scheduleRepository.save(scheduleEntity)
+
 		const group = this.groupRepository.create({
 			name,
-			teacher: teacherEntity,
-			students: studentEntities
+			students: studentEntities,
+			schedule: scheduleEntity
 		})
-
-		await this.scheduleRepository.save(scheduleEntity)
-		group.schedule = scheduleEntity
 
 		const savedGroup = await this.groupRepository.save(group)
 
+		// ✅ Привязка классного руководителя
+		teacherEntity.group = savedGroup
+		await this.teacherRepository.save(teacherEntity)
+
+		// 🔄 Опционально — если хочешь, чтобы группа тоже знала о преподавателе
+		savedGroup.teacher = teacherEntity
+		await this.groupRepository.save(savedGroup)
+
+		// ✅ Создаём чат
 		const chat = this.chatRepository.create({ groupId: savedGroup.id })
 		const savedChat = await this.chatRepository.save(chat)
 
 		savedGroup.chat = savedChat
 		await this.groupRepository.save(savedGroup)
 
-		await this.teacherRepository.update(teacherId, { group: savedGroup })
+		// 👇 Добавляем предметных учителей из расписания
+		const teachingTeacherIds = new Set<string>()
+		const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+
+		for (const day of days) {
+			const lessons = schedule[day] || []
+			for (const lesson of lessons) {
+				if (lesson.teacher?.id) {
+					teachingTeacherIds.add(lesson.teacher.id)
+				}
+			}
+		}
+
+		for (const tId of teachingTeacherIds) {
+			if (tId === teacherEntity.id) continue
+
+			const teacher = await this.teacherRepository.findOne({
+				where: { id: tId },
+				relations: ['teachingGroups']
+			})
+
+			if (teacher) {
+				const alreadyInGroup = teacher.teachingGroups?.some(
+					g => g.id === savedGroup.id
+				)
+				if (!alreadyInGroup) {
+					teacher.teachingGroups = [
+						...(teacher.teachingGroups || []),
+						savedGroup
+					]
+					await this.teacherRepository.save(teacher)
+				}
+			}
+		}
 
 		await this.messagesService.create({
 			text: `Группа "${savedGroup.name}" создана. Участники добавлены в чат.`,
@@ -131,7 +173,9 @@ export class GroupsService {
 			userId: null
 		})
 
-		return savedGroup
+		return plainToClass(GroupEntity, savedGroup, {
+			excludeExtraneousValues: true
+		})
 	}
 
 	async update(
@@ -143,31 +187,15 @@ export class GroupsService {
 			relations: ['schedule', 'teacher', 'students', 'chat']
 		})
 
-		console.log('updateGroupDto', updateGroupDto)
-
 		if (!group) {
 			throw new NotFoundException('Group not found')
 		}
 
-		const { name, teacher, students, schedule } = updateGroupDto
+		const { name, students, schedule } = updateGroupDto
 
-		// // Handle the new teacher
-		// let newTeacher
-		// if (teacher) {
-		// 	newTeacher = await this.teacherRepository.findOne({
-		// 		where: { id: teacher }
-		// 	})
-		// 	if (!newTeacher) {
-		// 		throw new NotFoundException(`Teacher with ID ${teacher} not found`)
-		// 	}
-		//
-		// 	if (group.teacher?.id !== newTeacher.id) {
-		// 		group.teacher = newTeacher
-		// 	}
-		// }
-
-		const allTeacherMap = new Map<string, TeacherEntity>()
+		// 1. Собираем всех учителей из нового расписания
 		const teachingTeacherIds = new Set<string>()
+		const allTeacherMap = new Map<string, TeacherEntity>()
 
 		for (const day of [
 			'monday',
@@ -177,7 +205,6 @@ export class GroupsService {
 			'friday'
 		]) {
 			const lessons = schedule?.[day] || []
-
 			for (const lesson of lessons) {
 				const teacher = lesson.teacher
 				if (!teacher?.id) continue
@@ -196,7 +223,7 @@ export class GroupsService {
 			}
 		}
 
-		// Добавление преподавателей в teachingGroups
+		// 2. Добавляем преподавателей в teachingGroups, если они начали вести группу
 		for (const teacherId of teachingTeacherIds) {
 			const teacher = allTeacherMap.get(teacherId)
 			if (!teacher) continue
@@ -210,16 +237,24 @@ export class GroupsService {
 			}
 		}
 
-		// Удаление тех, кто больше не преподаёт в этой группе
-		for (const [teacherId, teacher] of allTeacherMap.entries()) {
-			if (!teachingTeacherIds.has(teacherId)) {
-				teacher.teachingGroups = (teacher.teachingGroups || []).filter(
+		// 3. Удаляем преподавателей, которые больше не ведут в этой группе
+		const previousTeachingTeachers = await this.teacherRepository.find({
+			where: {
+				teachingGroups: { id: group.id }
+			},
+			relations: ['teachingGroups']
+		})
+
+		for (const prevTeacher of previousTeachingTeachers) {
+			if (!teachingTeacherIds.has(prevTeacher.id)) {
+				prevTeacher.teachingGroups = prevTeacher.teachingGroups.filter(
 					g => g.id !== group.id
 				)
-				await this.teacherRepository.save(teacher)
+				await this.teacherRepository.save(prevTeacher)
 			}
 		}
 
+		// 4. Отправляем сообщения в чат о смене преподавателей
 		if (group.chat && schedule) {
 			const daysOfWeek = [
 				'monday',
@@ -236,21 +271,18 @@ export class GroupsService {
 				const oldByTeacher = new Map<string, typeof oldDaySchedule>()
 				const newByTeacher = new Map<string, typeof newDaySchedule>()
 
-				// Группируем старое расписание по учителям
 				for (const lesson of oldDaySchedule) {
 					if (!lesson.teacher) continue
 					const list = oldByTeacher.get(lesson.teacher.id) || []
 					oldByTeacher.set(lesson.teacher.id, [...list, lesson])
 				}
 
-				// Группируем новое расписание по учителям
 				for (const lesson of newDaySchedule) {
 					if (!lesson.teacher) continue
 					const list = newByTeacher.get(lesson.teacher.id) || []
 					newByTeacher.set(lesson.teacher.id, [...list, lesson])
 				}
 
-				// ✅ Изменение дисциплины у того же учителя
 				for (const [teacherId, oldLessons] of oldByTeacher) {
 					const newLessons = newByTeacher.get(teacherId)
 
@@ -275,7 +307,6 @@ export class GroupsService {
 					}
 				}
 
-				// ✅ Изменение преподавателя у той же дисциплины
 				for (const oldLesson of oldDaySchedule) {
 					const newLesson = newDaySchedule.find(
 						l =>
@@ -292,7 +323,6 @@ export class GroupsService {
 					}
 				}
 
-				// 👋 Преподаватели, полностью ушедшие
 				for (const [teacherId, oldLessons] of oldByTeacher) {
 					if (!newByTeacher.has(teacherId)) {
 						for (const lesson of oldLessons) {
@@ -305,7 +335,6 @@ export class GroupsService {
 					}
 				}
 
-				// 👋 Преподаватели, полностью новые
 				for (const [teacherId, newLessons] of newByTeacher) {
 					if (!oldByTeacher.has(teacherId)) {
 						for (const lesson of newLessons) {
@@ -320,16 +349,17 @@ export class GroupsService {
 			}
 		}
 
-		// Обновление студентов
+		// 5. Обновляем студентов
 		if (students) {
 			group.students = await this.studentRepository.findByIds(students)
 		}
 
+		// 6. Обновляем имя группы
 		if (name) {
 			group.name = name
 		}
 
-		// Обновление расписания
+		// 7. Обновляем расписание
 		if (schedule) {
 			group.schedule.monday = await this.processLessons(schedule.monday || [])
 			group.schedule.tuesday = await this.processLessons(schedule.tuesday || [])
@@ -344,6 +374,7 @@ export class GroupsService {
 			await this.scheduleRepository.save(group.schedule)
 		}
 
+		// 8. Сохраняем группу
 		return await this.groupRepository.save(group)
 	}
 
@@ -373,8 +404,21 @@ export class GroupsService {
 	}
 
 	async remove(id: string): Promise<void> {
+		const group = await this.groupRepository.findOne({
+			where: { id },
+			relations: ['teachingTeachers']
+		})
+
+		if (!group) return
+
+		await this.groupRepository
+			.createQueryBuilder()
+			.relation(GroupEntity, 'teachingTeachers')
+			.of(id)
+			.remove(group.teachingTeachers.map(t => t.id))
+
 		await this.gradeRepository.delete({ group: { id } })
-		await this.gradeRepository.update({ group: { id } }, { group: null })
+
 		await this.groupRepository.delete(id)
 	}
 

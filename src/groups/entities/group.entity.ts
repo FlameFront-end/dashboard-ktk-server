@@ -58,10 +58,9 @@ export class GroupEntity {
 	chat: ChatEntity
 
 	@OneToOne(() => TeacherEntity, teacher => teacher.group, {
-		cascade: true,
+		cascade: false,
 		onDelete: 'SET NULL'
 	})
-	@JoinColumn()
 	teacher: TeacherEntity
 
 	@ManyToMany(() => TeacherEntity, teacher => teacher.teachingGroups)

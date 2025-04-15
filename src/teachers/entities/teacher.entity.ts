@@ -11,6 +11,7 @@ import {
 } from 'typeorm'
 import { GroupEntity } from '../../groups/entities/group.entity'
 import { DisciplineEntity } from '../../disciplines/entities/discipline.entity'
+import { Exclude } from 'class-transformer'
 
 @Entity('teachers')
 export class TeacherEntity {
@@ -36,9 +37,11 @@ export class TeacherEntity {
 	updatedAt: Date
 
 	@OneToOne(() => GroupEntity, group => group.teacher, {
-		onDelete: 'SET NULL'
+		onDelete: 'SET NULL',
+		cascade: false
 	})
 	@JoinColumn()
+	@Exclude()
 	group: GroupEntity
 
 	@ManyToMany(() => DisciplineEntity, discipline => discipline.teachers, {
