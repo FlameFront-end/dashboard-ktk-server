@@ -12,7 +12,6 @@ import { StudentsService } from './students.service'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { StudentEntity } from './entities/student.entity'
 import { UpdateStudentDto } from './dto/update-student.dto'
-import { GradeEntity } from '../groups/entities/grade.entity'
 
 @ApiTags('students')
 @Controller('students')

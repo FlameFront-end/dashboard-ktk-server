@@ -23,6 +23,9 @@ import { ChatModule } from './chat/chat.module'
 import { MessagesModule } from './messages/messages.module'
 import { MessageEntity } from './messages/entities/message.entity'
 import { ChatEntity } from './chat/entities/chat.entity'
+import { SupportModule } from './support-ticket/support.module'
+import { SupportTicketEntity } from './support-ticket/entities/support-ticket.entity'
+import { TelegramModule } from './telegram/telegram.module';
 
 @Module({
 	imports: [
@@ -49,7 +52,8 @@ import { ChatEntity } from './chat/entities/chat.entity'
 				GradeEntity,
 				LessonEntity,
 				MessageEntity,
-				ChatEntity
+				ChatEntity,
+				SupportTicketEntity
 			],
 			synchronize: true,
 			ssl:
@@ -75,7 +79,8 @@ import { ChatEntity } from './chat/entities/chat.entity'
 			GradeEntity,
 			LessonEntity,
 			MessageEntity,
-			ChatEntity
+			ChatEntity,
+			SupportTicketEntity
 		]),
 		TeachersModule,
 		StudentsModule,
@@ -85,7 +90,9 @@ import { ChatEntity } from './chat/entities/chat.entity'
 		LessonsModule,
 		LessonEntity,
 		ChatModule,
-		MessagesModule
+		MessagesModule,
+		SupportModule,
+		TelegramModule
 	],
 	providers: []
 })
