@@ -13,7 +13,7 @@ import { StudentEntity } from '../students/entities/student.entity'
 import { UpdateGroupDto } from './dto/update-group.dto'
 import { DisciplineEntity } from '../disciplines/entities/discipline.entity'
 import { GradeEntity } from './entities/grade.entity'
-import moment from 'moment'
+import * as moment from 'moment'
 import { SaveGradesDto } from './dto/save-grades.dto'
 import { ChatEntity } from '../chat/entities/chat.entity'
 import { MessagesService } from '../messages/messages.service'
@@ -414,30 +414,54 @@ export class GroupsService {
 		const { groupId, grades } = saveGradesDto
 
 		try {
-			const gradeEntities: GradeEntity[] = []
+			const gradeEntitiesToSave: GradeEntity[] = []
 
 			for (const disciplineId in grades) {
-				for (const dateString in grades[disciplineId]) {
+				if (
+					!grades.hasOwnProperty(disciplineId) ||
+					typeof grades[disciplineId] !== 'object'
+				)
+					continue
+
+				const disciplineGrades = grades[disciplineId]
+				for (const dateString in disciplineGrades) {
 					const date = moment(dateString, 'YYYY-MM-DD').toDate()
-					const studentGrades = grades[disciplineId][dateString]
+					const studentGrades = disciplineGrades[dateString]
 
 					for (const studentId in studentGrades) {
 						const gradeValue = studentGrades[studentId]
 
-						gradeEntities.push(
-							this.gradeRepository.create({
+						const existing = await this.gradeRepository.findOne({
+							where: {
 								group: { id: groupId },
 								student: { id: studentId },
 								discipline: { id: disciplineId },
-								date: date,
+								date
+							}
+						})
+
+						if (existing) {
+							if (existing.grade !== gradeValue) {
+								existing.grade = gradeValue
+								gradeEntitiesToSave.push(existing)
+							}
+						} else {
+							const newGrade = this.gradeRepository.create({
+								group: { id: groupId },
+								student: { id: studentId },
+								discipline: { id: disciplineId },
+								date,
 								grade: gradeValue
 							})
-						)
+							gradeEntitiesToSave.push(newGrade)
+						}
 					}
 				}
 			}
 
-			await this.gradeRepository.save(gradeEntities)
+			if (gradeEntitiesToSave.length > 0) {
+				await this.gradeRepository.save(gradeEntitiesToSave)
+			}
 
 			return { message: 'Grades saved successfully' }
 		} catch (error) {
