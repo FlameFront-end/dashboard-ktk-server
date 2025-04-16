@@ -17,4 +17,9 @@ export class SupportController {
 	getAll() {
 		return this.supportService.getAllTickets()
 	}
+
+	@Get('error')
+	getError() {
+		return this.supportService.getError()
+	}
 }

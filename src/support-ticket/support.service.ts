@@ -69,4 +69,8 @@ export class SupportService {
 			order: { createdAt: 'DESC' }
 		})
 	}
+
+	getError() {
+		throw new Error('💥 Искусственная ошибка для теста')
+	}
 }

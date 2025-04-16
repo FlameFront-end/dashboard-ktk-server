@@ -25,7 +25,7 @@ import { MessageEntity } from './messages/entities/message.entity'
 import { ChatEntity } from './chat/entities/chat.entity'
 import { SupportModule } from './support-ticket/support.module'
 import { SupportTicketEntity } from './support-ticket/entities/support-ticket.entity'
-import { TelegramModule } from './telegram/telegram.module';
+import { TelegramModule } from './telegram/telegram.module'
 
 @Module({
 	imports: [
