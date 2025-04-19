@@ -69,7 +69,18 @@ export class LessonsService {
 		updateLessonDto: UpdateLessonDto
 	): Promise<LessonEntity> {
 		const lesson = await this.findOne(id)
+		if (!lesson) {
+			throw new Error('Lesson not found')
+		}
+
 		Object.assign(lesson, updateLessonDto)
+
+		if (updateLessonDto.files && Array.isArray(updateLessonDto.files)) {
+			lesson.files = updateLessonDto.files.filter(file => !!file.url)
+		} else {
+			lesson.files = []
+		}
+
 		return this.lessonRepository.save(lesson)
 	}
 

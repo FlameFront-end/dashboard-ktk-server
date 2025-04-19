@@ -58,11 +58,32 @@ export class LessonsController {
 	}
 
 	@Patch(':id')
+	@UseInterceptors(FilesInterceptor('files', 10, { storage: filesStorage }))
 	async update(
 		@Param('id') id: string,
-		@Body() updateLessonDto: UpdateLessonDto
+		@Body() updateLessonDto: any,
+		@UploadedFiles() files: Express.Multer.File[]
 	) {
-		return await this.lessonsService.update(id, updateLessonDto)
+		files.forEach(file => {
+			file.originalname = decodeOriginalName(file.originalname)
+		})
+
+		let existingFiles: any[] = []
+
+		if (typeof updateLessonDto.files === 'string') {
+			existingFiles = JSON.parse(updateLessonDto.files)
+		} else if (Array.isArray(updateLessonDto.files)) {
+			existingFiles = updateLessonDto.files
+		}
+
+		const newFiles = files.map(file => ({
+			originalName: file.originalname,
+			url: `http://localhost:3000/uploads/${file.filename}`
+		}))
+
+		updateLessonDto.files = [...existingFiles, ...newFiles]
+
+		return this.lessonsService.update(id, updateLessonDto)
 	}
 
 	@Delete(':id')
