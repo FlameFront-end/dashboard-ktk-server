@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common'
 import { LessonsService } from './lessons.service'
 import { CreateLessonDto } from './dto/create-lesson.dto'
-import { UpdateLessonDto } from './dto/update-lesson.dto'
 import { LessonEntity } from './entities/lesson.entity'
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger'
 import { FilesInterceptor } from '@nestjs/platform-express'
