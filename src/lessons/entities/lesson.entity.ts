@@ -30,4 +30,7 @@ export class LessonEntity {
 	@ManyToOne(() => DisciplineEntity, discipline => discipline.lessons)
 	@JoinColumn()
 	discipline: DisciplineEntity
+
+	@Column('json', { nullable: true })
+	files: { originalName: string; url: string }[]
 }

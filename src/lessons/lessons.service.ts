@@ -18,14 +18,20 @@ export class LessonsService {
 
 	async create(createLessonDto: CreateLessonDto): Promise<LessonEntity> {
 		const discipline = await this.disciplineRepository.findOne({
-			where: {
-				id: createLessonDto.disciplineId
-			}
+			where: { id: createLessonDto.disciplineId }
 		})
+		if (!discipline) throw new Error('Discipline not found')
+
+		const filesData =
+			createLessonDto.files?.map((file: Express.Multer.File) => ({
+				originalName: file.originalname,
+				url: `http://localhost:3000/uploads/${file.filename}`
+			})) || []
 
 		const lesson = this.lessonRepository.create({
 			...createLessonDto,
-			discipline
+			discipline,
+			files: filesData
 		})
 
 		return this.lessonRepository.save(lesson)

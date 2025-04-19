@@ -3,7 +3,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { JwtModule } from '@nestjs/jwt'
 import { AuthModule } from './auth/auth.module'
-import { UploadModule } from './upload/upload.module'
 import { MailModule } from './mail/mail.module'
 import { TeachersModule } from './teachers/teachers.module'
 import { TeacherEntity } from './teachers/entities/teacher.entity'
@@ -29,9 +28,6 @@ import { TelegramModule } from './telegram/telegram.module'
 
 @Module({
 	imports: [
-		AuthModule,
-		UploadModule,
-		MailModule,
 		ConfigModule.forRoot({
 			envFilePath: `.env.${process.env.NODE_ENV}`
 		}),
@@ -82,6 +78,8 @@ import { TelegramModule } from './telegram/telegram.module'
 			ChatEntity,
 			SupportTicketEntity
 		]),
+		AuthModule,
+		MailModule,
 		TeachersModule,
 		StudentsModule,
 		GroupsModule,
@@ -93,7 +91,6 @@ import { TelegramModule } from './telegram/telegram.module'
 		MessagesModule,
 		SupportModule,
 		TelegramModule
-	],
-	providers: []
+	]
 })
 export class AppModule {}
